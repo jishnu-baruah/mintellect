@@ -77,7 +77,7 @@ export default function ReviewPage() {
     setTimeout(() => {
       setIsMinted(true)
       setIsLoading(false)
-
+    
       toast({
         title: "NFT Minted",
         description: "Your paper has been verified and an NFT certificate has been minted",
