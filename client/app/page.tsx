@@ -10,6 +10,8 @@ import { motion } from "framer-motion"
 import { ArrowRight, FileUp, Shield, Upload } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { formatPercentage, getTrustScoreClass } from "@/lib/utils"
+import { useOCAuth } from "@opencampus/ocid-connect-js"
+import LoginButton from "@/components/LoginButton"
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null)
@@ -23,8 +25,18 @@ export default function Home() {
   const [isEligible, setIsEligible] = useState<boolean | null>(null)
   const [eligibilityData, setEligibilityData] = useState<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { authState, ocAuth } = useOCAuth()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (authState.error) {
+      return <div>Error: {authState.error.message}</div>
+    }
+
+    // Add a loading state
+    if (authState.isLoading) {
+      return <div>Loading...</div>
+    }
+
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0])
       // Reset previous analysis results
@@ -195,7 +207,7 @@ export default function Home() {
                   <div className="mb-2">
                     <h4 className="text-sm font-medium">Level 0 Issues:</h4>
                     <ul className="list-disc list-inside text-xs text-muted-foreground">
-                      {eligibilityData.level0.issues?.map((issue, i) => (
+                      {eligibilityData.level0.issues?.map((issue: string, i: number) => (
                         <li key={`level0-${i}`}>{issue}</li>
                       ))}
                       {eligibilityData.level0.issues?.length === 0 && <li>No issues found</li>}
@@ -207,7 +219,7 @@ export default function Home() {
                   <div className="mb-2">
                     <h4 className="text-sm font-medium">Level 1 Issues:</h4>
                     <ul className="list-disc list-inside text-xs text-muted-foreground">
-                      {eligibilityData.level1.issues?.map((issue, i) => (
+                      {eligibilityData.level1.issues?.map((issue: string, i: number) => (
                         <li key={`level1-${i}`}>{issue}</li>
                       ))}
                       {eligibilityData.level1.issues?.length === 0 && <li>No issues found</li>}
@@ -219,7 +231,7 @@ export default function Home() {
                   <div className="mb-2">
                     <h4 className="text-sm font-medium">Missing Sections:</h4>
                     <ul className="list-disc list-inside text-xs text-muted-foreground">
-                      {eligibilityData.level2.missingSections?.map((section, i) => (
+                      {eligibilityData.level2.missingSections?.map((section: string, i: number) => (
                         <li key={`level2-${i}`}>{section}</li>
                       ))}
                       {eligibilityData.level2.missingSections?.length === 0 && <li>No missing sections</li>}

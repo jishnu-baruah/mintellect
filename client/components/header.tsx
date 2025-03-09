@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
-import { useOCID } from "@/app/clientLayout"
+import { useOCAuth } from "@opencampus/ocid-connect-js" // Ensure correct import
 import { cn } from "@/lib/utils"
 import { Bell, User, Menu } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -12,7 +12,7 @@ import { useState } from "react"
 
 export default function Header() {
   const pathname = usePathname()
-  const { ocid, isConnected, isConnecting, connect, disconnect } = useOCID()
+  const { ocAuth, isInitialized, authState } = useOCAuth() // Adjusted to match the correct hook usage
   const [hasNotifications, setHasNotifications] = useState(true)
 
   const navItems = [
@@ -22,6 +22,18 @@ export default function Header() {
     { href: "/trust-score", label: "Trust Score" },
     { href: "/review", label: "Review" },
   ]
+
+  const handleLogout = async () => {
+    if (ocAuth && typeof ocAuth.logout === 'function') {
+      try {
+        await ocAuth.logout()
+      } catch (err) {
+        console.error("Logout error:", err)
+      }
+    } else {
+      console.error("ocAuth is not properly initialized or logout method is not available")
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -65,19 +77,18 @@ export default function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
           <ModeToggle />
-          {isConnected ? (
-            <Button variant="outline" onClick={disconnect} className="flex items-center gap-2">
+          {isInitialized ? (
+            <Button variant="outline" onClick={authState ? handleLogout : ocAuth.login} className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              <span className="hidden sm:inline">{ocid}</span>
+              <span className="hidden sm:inline">{authState ? "Logout" : "Login"}</span>
             </Button>
           ) : (
             <Button
-              onClick={connect}
-              disabled={isConnecting}
+              disabled
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
             >
               <User className="h-4 w-4" />
-              <span>{isConnecting ? "Connecting..." : "Connect OCID"}</span>
+              <span>Initializing...</span>
             </Button>
           )}
           <DropdownMenu>

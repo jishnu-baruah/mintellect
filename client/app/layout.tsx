@@ -1,15 +1,23 @@
+"use client"
+
 import type React from "react"
-import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import ClientLayout from "./clientLayout"
+import OCConnectWrapper from "@/components/OCConnectWrapper"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
+import Header from "@/components/header"
+import { ocidConfig } from "@/config/ocidConfig"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata: Metadata = {
-  title: "Mintellect | Web3 Research Verification",
-  description: "Verify and enhance the credibility of your research papers using blockchain technology",
-    generator: 'v0.dev'
+const updatedOcidConfig = {
+  ...ocidConfig,
+  opts: {
+    ...ocidConfig.opts,
+    redirectUri: 'http://localhost:3000/redirect', // Use the actual redirect URI
+  },
 }
 
 export default function RootLayout({
@@ -17,9 +25,19 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  return <ClientLayout>{children}</ClientLayout>
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} web3-bg min-h-screen`}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <OCConnectWrapper opts={updatedOcidConfig.opts} sandboxMode={true}>
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+              <Toaster />
+            </div>
+          </OCConnectWrapper>
+        </ThemeProvider>
+      </body>
+    </html>
+  )
 }
-
-
-
-import './globals.css'

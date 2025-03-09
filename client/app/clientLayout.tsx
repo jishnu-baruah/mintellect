@@ -1,124 +1,84 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import Header from "@/components/header"
-import { useToast } from "@/components/ui/use-toast"
+import { OCConnect } from "@opencampus/ocid-connect-js"
+import { useOCAuth } from "@opencampus/ocid-connect-js"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 const inter = Inter({ subsets: ["latin"] })
 
-// OCID Provider Logic
-type OCIDContextType = {
-  ocid: string | null
-  isConnected: boolean
-  isConnecting: boolean
-  connect: () => Promise<void>
-  disconnect: () => void
-}
-
-const OCIDContext = createContext<OCIDContextType>({
-  ocid: null,
-  isConnected: false,
-  isConnecting: false,
-  connect: async () => {},
-  disconnect: () => {},
-})
-
-export const useOCID = () => useContext(OCIDContext)
-
-function OCIDProvider({ children }: { children: React.ReactNode }) {
-  const [ocid, setOCID] = useState<string | null>(null)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const { toast } = useToast()
-
-  useEffect(() => {
-    const savedOCID = localStorage.getItem("ocid")
-    if (savedOCID) {
-      setOCID(savedOCID)
-    }
-  }, [])
-
-  const connect = async () => {
-    setIsConnecting(true)
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      const mockOCID = "0x" + Math.random().toString(16).slice(2, 10)
-
-      setOCID(mockOCID)
-      localStorage.setItem("ocid", mockOCID)
-
-      toast({
-        title: "OCID Connected",
-        description: `Connected with OCID: ${mockOCID}`,
-      })
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Connection Failed",
-        description: "Failed to connect OCID. Please try again.",
-      })
-    } finally {
-      setIsConnecting(false)
-    }
-  }
-
-  const disconnect = () => {
-    setOCID(null)
-    localStorage.removeItem("ocid")
-    toast({
-      title: "OCID Disconnected",
-      description: "Your OCID has been disconnected",
-    })
-  }
-
-  return (
-    <OCIDContext.Provider
-      value={{
-        ocid,
-        isConnected: !!ocid,
-        isConnecting,
-        connect,
-        disconnect,
-      }}
-    >
-      {children}
-    </OCIDContext.Provider>
-  )
-}
-
-// Root Layout Component
 export default function ClientLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const router = useRouter()
+  const { isInitialized, authState } = useOCAuth()
+
+  // Handle authentication state changes
   useEffect(() => {
-    // This runs only on the client after hydration
-    // It ensures any class differences between server and client are reconciled
-    if (typeof window !== "undefined") {
-      document.body.classList.add("web3-bg", "min-h-screen")
+    if (!isInitialized) return // Wait for SDK initialization
+    
+    if (authState.isAuthenticated) {
+      // Redirect to home page after successful connection
+      router.push("/")
     }
-  }, [])
+  }, [isInitialized, authState.isAuthenticated, router])
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} web3-bg min-h-screen`} suppressHydrationWarning>
+      <body className={`${inter.className} web3-bg min-h-screen`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <OCIDProvider>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Toaster />
-            </div>
-          </OCIDProvider>
+          <OCConnect
+            opts={{
+              redirectUri: typeof window !== "undefined" ? 
+                `${window.location.origin}/redirect` : 
+                "http://localhost:3000/redirect",
+              referralCode: "PARTNER6",
+            }}
+            sandboxMode={true}
+          >
+            <AuthWrapper>
+              <div className="flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1">{children}</main>
+                <Toaster />
+              </div>
+            </AuthWrapper>
+          </OCConnect>
         </ThemeProvider>
       </body>
     </html>
   )
 }
 
+function AuthWrapper({ children }: { children: React.ReactNode }) {
+  const { isInitialized, authState } = useOCAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (isInitialized && !authState.isAuthenticated) {
+      router.push("/login")
+    }
+  }, [isInitialized, authState.isAuthenticated, router])
+
+  if (!isInitialized) {
+    return <div className="container flex h-screen items-center justify-center">Initializing...</div>
+  }
+
+  if (authState.error) {
+    return (
+      <div className="container flex h-screen items-center justify-center">
+        Error: {authState.error.message}
+      </div>
+    )
+  }
+
+  return <>{children}</>
+}
