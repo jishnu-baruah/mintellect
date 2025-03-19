@@ -9,6 +9,9 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import Header from "@/components/header"
 import { ocidConfig } from "@/config/ocidConfig"
+import { LoginCallBack } from "@opencampus/ocid-connect-js";
+import { usePathname } from "next/navigation"; // Use `usePathname` instead of `useRouter`
+import { useEffect, useState } from "react";
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -20,11 +23,29 @@ const updatedOcidConfig = {
   },
 }
 
+const loginSuccess = () => {
+  console.log("Login successful!");
+};
+
+const loginError = () => {
+  console.error("Login failed!");
+};
+
+function CustomErrorComponent() {
+  return <div>Error Logging in: Something went wrong!</div>;
+}
+
+function CustomLoadingComponent() {
+  return <div>Loading...</div>;
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
+  const pathname = usePathname(); // Get the current pathname
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} web3-bg min-h-screen`}>
@@ -36,8 +57,16 @@ export default function RootLayout({
               <Toaster />
             </div>
           </OCConnectWrapper>
+          {pathname === "/redirect" && (
+            <LoginCallBack
+              customErrorComponent={CustomErrorComponent}
+              customLoadingComponent={CustomLoadingComponent}
+              successCallback={loginSuccess}
+              errorCallback={loginError}
+            />
+          )}
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }

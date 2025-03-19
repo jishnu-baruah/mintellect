@@ -14,8 +14,15 @@ interface OCConnectWrapperProps {
 
 export default function OCConnectWrapper({ children, opts, sandboxMode }: OCConnectWrapperProps) {
   return (
-    <OCConnect opts={opts} sandboxMode={sandboxMode}>
+    <OCConnect
+      opts={{
+        ...opts,
+        redirectUri: "http://localhost:3001/redirect",
+        referralCode: "PARTNER6",
+      }}
+      sandboxMode={sandboxMode}
+    >
       {children}
     </OCConnect>
-  )
+  );
 }

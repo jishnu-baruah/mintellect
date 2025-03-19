@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -26,6 +26,12 @@ export default function Home() {
   const [eligibilityData, setEligibilityData] = useState<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { authState, ocAuth } = useOCAuth()
+  const [hydrationClass, setHydrationClass] = useState("");
+
+  useEffect(() => {
+    // Add any dynamic class names after hydration
+    setHydrationClass("vsc-initialized");
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (authState.error) {
@@ -137,7 +143,10 @@ export default function Home() {
   }
 
   return (
-    <div className="container max-w-6xl py-8 md:py-12">
+    <div
+      className={`container max-w-6xl py-8 md:py-12 ${hydrationClass}`}
+      suppressHydrationWarning={true}
+    >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

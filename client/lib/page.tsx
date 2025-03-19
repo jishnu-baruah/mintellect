@@ -6,9 +6,17 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import Header from "@/components/header"
-import { OCConnect } from "@opencampus/ocid-connect-js"
+import { OCConnect, LoginCallBack } from "@opencampus/ocid-connect-js"
 
 const inter = Inter({ subsets: ["latin"] })
+
+const loginSuccess = () => {
+  console.log("Login successful!")
+}
+
+const loginError = () => {
+  console.error("Login failed!")
+}
 
 export default function ClientLayout({
   children,
@@ -21,7 +29,7 @@ export default function ClientLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <OCConnect
             opts={{
-              redirectUri: "http://localhost:3000/redirect",
+              redirectUri: "http://localhost:3001/redirect",
               referralCode: "PARTNER6",
             }}
             sandboxMode={true}
@@ -32,6 +40,12 @@ export default function ClientLayout({
               <Toaster />
             </div>
           </OCConnect>
+          <LoginCallBack
+            errorCallback={loginError}
+            successCallback={loginSuccess}
+            customErrorComponent={<div>Error occurred during login.</div>}
+            customLoadingComponent={<div>Loading...</div>}
+          />
         </ThemeProvider>
       </body>
     </html>

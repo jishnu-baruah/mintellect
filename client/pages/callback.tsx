@@ -2,21 +2,32 @@
 /** @jsxImportSource react */
 
 import type React from "react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/router"
-import { useOCAuth } from '@opencampus/ocid-connect-js'
+import { useOCAuth } from "@opencampus/ocid-connect-js"
 import { useToast } from "@/components/ui/use-toast"
 
 const CallbackPage = () => {
-  const { ocAuth } = useOCAuth()
+  const { ocAuth } = useOCAuth() || {}
   const { toast } = useToast()
   const router = useRouter()
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient || !ocAuth) return
+
     const handleCallback = async () => {
       try {
-        await ocAuth.handleRedirectCallback()
-        router.push('/') // Redirect to the home page or another page after successful authentication
+        const authState = await ocAuth.handleRedirectCallback()
+        if (authState?.idToken) {
+          router.push("/") // Redirect to the home page after successful authentication
+        } else {
+          throw new Error("Login process is not completed")
+        }
       } catch (error) {
         console.error("Callback error:", error)
         toast({
@@ -28,7 +39,11 @@ const CallbackPage = () => {
     }
 
     handleCallback()
-  }, [ocAuth, router, toast])
+  }, [isClient, ocAuth, router, toast])
+
+  if (!isClient) {
+    return <div suppressHydrationWarning>Loading...</div>
+  }
 
   return <div>Loading...</div>
 }

@@ -8,35 +8,40 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 const UserTokenPage: React.FC = () => {
-  const { isInitialized, authState, ocAuth, OCId } = useOCAuth()
+  const { isInitialized, authState, ocAuth, OCId } = useOCAuth() || {}
   const [error, setError] = useState<string | null>(null)
   const [userInfo, setUserInfo] = useState<any>(null)
   const { toast } = useToast()
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient || !isInitialized || !authState?.isAuthenticated || !ocAuth) return
+
     const fetchUserInfo = async () => {
-      if (isInitialized && authState.isAuthenticated && ocAuth) {
-        try {
-          const authStateData = await ocAuth.getAuthState()
-          const userInfoData = await ocAuth.getUserInfo()
-          setUserInfo({
-            authState: authStateData,
-            userInfo: userInfoData,
-          })
-        } catch (err) {
-          setError("Failed to fetch user information")
-          console.error(err)
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to fetch user information",
-          })
-        }
+      try {
+        const authStateData = await ocAuth.getAuthState()
+        const userInfoData = await ocAuth.getUserInfo()
+        setUserInfo({
+          authState: authStateData,
+          userInfo: userInfoData,
+        })
+      } catch (err) {
+        setError("Failed to fetch user information")
+        console.error(err)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch user information",
+        })
       }
     }
 
     fetchUserInfo()
-  }, [isInitialized, authState.isAuthenticated, ocAuth, toast])
+  }, [isClient, isInitialized, authState?.isAuthenticated, ocAuth, toast])
 
   const handleLogin = async () => {
     try {
@@ -50,6 +55,10 @@ const UserTokenPage: React.FC = () => {
         description: (err instanceof Error ? err.message : "An error occurred during login"),
       })
     }
+  }
+
+  if (!isClient) {
+    return <div suppressHydrationWarning className="flex justify-center items-center h-screen">Loading...</div>
   }
 
   if (!isInitialized) {
@@ -69,7 +78,7 @@ const UserTokenPage: React.FC = () => {
     )
   }
 
-  if (!authState.isAuthenticated) {
+  if (!authState?.isAuthenticated) {
     return (
       <div className="container max-w-4xl py-8">
         <Card>

@@ -4,7 +4,7 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
-import { useOCAuth } from '@opencampus/ocid-connect-js'
+import { useOCAuth } from "@opencampus/ocid-connect-js"
 
 type OCIDContextType = {
   ocid: string | null
@@ -33,11 +33,11 @@ export const OCIDProvider = ({ children }: { children: React.ReactNode }) => {
     setIsConnecting(true)
     try {
       await ocAuth.signInWithRedirect({
-        state: 'opencampus',
-        redirectUri: 'http://localhost:3000/redirect', // Update to the correct redirect URI
-        referralCode: 'PARTNER6', // Add referral code
-        domain: '', // Leave blank to use the current domain
-        sameSite: true // Specify SameSite behavior
+        state: "opencampus",
+        redirectUri: "http://localhost:3000/redirect", // Update to the correct redirect URI
+        referralCode: "PARTNER6", // Add referral code
+        domain: "", // Leave blank to use the current domain
+        sameSite: true, // Specify SameSite behavior
       })
     } catch (error) {
       console.error("Login error:", error)
@@ -60,20 +60,20 @@ export const OCIDProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   useEffect(() => {
-    if (authState.error) {
+    if (authState?.error) {
       toast({
         variant: "destructive",
         title: "Authentication Error",
         description: authState.error.message,
       })
     }
-  }, [authState.error])
+  }, [authState?.error])
 
   return (
     <OCIDContext.Provider
       value={{
-        ocid: authState.OCId || null,
-        isConnected: authState.isAuthenticated,
+        ocid: authState?.OCId || null,
+        isConnected: authState?.isAuthenticated || false,
         isConnecting,
         connect,
         disconnect,

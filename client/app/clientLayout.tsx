@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/toaster"
 import Header from "@/components/header"
 import { OCConnect } from "@opencampus/ocid-connect-js"
 import { useOCAuth } from "@opencampus/ocid-connect-js"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -20,6 +20,14 @@ export default function ClientLayout({
 }>) {
   const router = useRouter()
   const { isInitialized, authState } = useOCAuth()
+  const [redirectUri, setRedirectUri] = useState("")
+
+  // Set redirectUri after hydration
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setRedirectUri(`${window.location.origin}/redirect`)
+    }
+  }, [])
 
   // Handle authentication state changes
   useEffect(() => {
@@ -35,23 +43,23 @@ export default function ClientLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} web3-bg min-h-screen`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <OCConnect
-            opts={{
-              redirectUri: typeof window !== "undefined" ? 
-                `${window.location.origin}/redirect` : 
-                "http://localhost:3000/redirect",
-              referralCode: "PARTNER6",
-            }}
-            sandboxMode={true}
-          >
-            <AuthWrapper>
-              <div className="flex min-h-screen flex-col">
-                <Header />
-                <main className="flex-1">{children}</main>
-                <Toaster />
-              </div>
-            </AuthWrapper>
-          </OCConnect>
+          {redirectUri && (
+            <OCConnect
+              opts={{
+                redirectUri,
+                referralCode: "PARTNER6",
+              }}
+              sandboxMode={true}
+            >
+              <AuthWrapper>
+                <div className="flex min-h-screen flex-col">
+                  <Header />
+                  <main className="flex-1">{children}</main>
+                  <Toaster />
+                </div>
+              </AuthWrapper>
+            </OCConnect>
+          )}
         </ThemeProvider>
       </body>
     </html>
