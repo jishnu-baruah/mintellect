@@ -17,7 +17,7 @@ export default function OCConnectWrapper({ children, opts, sandboxMode }: OCConn
     <OCConnect
       opts={{
         ...opts,
-        redirectUri: "http://localhost:3001/redirect",
+        redirectUri: "https://symmetrical-space-guacamole-rjg6px4675xcxjr4-3000.app.github.dev/",
         referralCode: "PARTNER6",
       }}
       sandboxMode={sandboxMode}

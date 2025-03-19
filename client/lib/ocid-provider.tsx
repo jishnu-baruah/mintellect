@@ -34,7 +34,7 @@ export const OCIDProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await ocAuth.signInWithRedirect({
         state: "opencampus",
-        redirectUri: "http://localhost:3000/redirect", // Update to the correct redirect URI
+        redirectUri: "https://symmetrical-space-guacamole-rjg6px4675xcxjr4-3000.app.github.dev/redirect", // Update to the correct redirect URI
         referralCode: "PARTNER6", // Add referral code
         domain: "", // Leave blank to use the current domain
         sameSite: true, // Specify SameSite behavior

@@ -15,13 +15,7 @@ import { useEffect, useState } from "react";
 
 const inter = Inter({ subsets: ["latin"] })
 
-const updatedOcidConfig = {
-  ...ocidConfig,
-  opts: {
-    ...ocidConfig.opts,
-    redirectUri: 'http://localhost:3000/redirect', // Use the actual redirect URI
-  },
-}
+
 
 const loginSuccess = () => {
   console.log("Login successful!");
@@ -50,7 +44,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} web3-bg min-h-screen`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <OCConnectWrapper opts={updatedOcidConfig.opts} sandboxMode={true}>
+          <OCConnectWrapper opts={ocidConfig.opts} sandboxMode={true}>
             <div className="flex min-h-screen flex-col">
               <Header />
               <main className="flex-1">{children}</main>

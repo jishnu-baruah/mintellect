@@ -21,7 +21,7 @@ export default function ClientLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <OCConnect
             opts={{
-              redirectUri: "http://localhost:3000/redirect",
+              redirectUri: "https://symmetrical-space-guacamole-rjg6px4675xcxjr4-3000.app.github.dev/redirect",
               referralCode: "PARTNER6",
             }}
             sandboxMode={true}
