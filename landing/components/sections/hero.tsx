@@ -81,7 +81,7 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4, ease: "easeOut" }}
           >
-            <Link href="https://mintellect.vercel.app" target="_blank" rel="noopener noreferrer">
+            <Link href="https://open-campus-page.vercel.app/" target="_blank" rel="noopener noreferrer">
               <FuturisticButton variant="primary" size="lg" icon={<FileText className="w-5 h-5" />}>
                 Explore Demo
               </FuturisticButton>
