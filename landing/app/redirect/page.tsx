@@ -2,9 +2,9 @@
 
 import { LoginCallBack, useOCAuth } from '@opencampus/ocid-connect-js';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 
-export default function RedirectPage() {
+function RedirectContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { authState } = useOCAuth();
@@ -56,5 +56,20 @@ export default function RedirectPage() {
       customErrorComponent={<CustomErrorComponent />}
       customLoadingComponent={<CustomLoadingComponent />}
     />
+  );
+}
+
+export default function RedirectPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-mintellect-primary mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    }>
+      <RedirectContent />
+    </Suspense>
   );
 } 
