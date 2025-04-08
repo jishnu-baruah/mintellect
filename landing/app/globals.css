@@ -13,7 +13,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 221 85% 21%;
+    --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -30,7 +30,7 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 221.2 83.2% 53.3%;
 
     --radius: 0.5rem;
   }
@@ -45,7 +45,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -62,72 +62,298 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 224.3 76.3% 48%;
   }
+}
 
+@layer base {
   * {
     @apply border-border;
   }
   body {
-    @apply bg-primary-dark text-white dark;
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  }
-  html {
-    scroll-behavior: smooth;
-    scroll-padding-top: 2rem; /* Add padding to account for any fixed headers */
+    @apply bg-background text-foreground;
   }
 }
 
-@layer components {
-  .heading-gradient {
-    @apply bg-gradient-to-r from-primary-light to-secondary bg-clip-text text-transparent;
-  }
+/* Enhanced smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 0;
+}
 
-  /* Ensure all text is white by default */
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  p,
-  span,
-  li,
-  a {
-    @apply text-white;
-  }
+body {
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
 
-  /* Secondary text with slight transparency */
-  .text-secondary {
-    @apply text-white/70;
-  }
+/* Improved section transitions */
+.section-transition-in {
+  animation: sectionFadeIn 0.8s ease-out forwards;
+}
 
-  /* Smooth transitions for all interactive elements */
-  a,
-  button,
-  .interactive {
-    @apply transition-all duration-300 ease-in-out;
+@keyframes sectionFadeIn {
+  from {
+    opacity: 0.7;
+    transform: translateY(30px);
   }
-
-  /* Section anchors for better scrolling */
-  section[id] {
-    scroll-margin-top: 2rem;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@keyframes pulse {
+/* Section divider styles */
+.section-divider {
+  position: relative;
+  height: 120px;
+  margin-top: -60px;
+  margin-bottom: -60px;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0) 100%);
+  opacity: 0.5;
+}
+
+/* Optimize animations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Hardware acceleration for smoother animations */
+.hw-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Section indicator styles */
+.section-indicator {
+  display: none;
+}
+
+.section-indicator span {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(191, 219, 254, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Enhanced parallax effects */
+.parallax-container {
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+}
+
+.parallax-element {
+  will-change: transform;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.parallax-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  transform: translateZ(-10px) scale(2);
+}
+
+/* Enhanced smooth scrolling */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+/* Improved section transitions */
+section {
+  position: relative;
+  transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Remove section dividers */
+section {
+  border: none !important;
+  position: relative;
+}
+
+/* Improved parallax effects */
+/* .parallax-container {
+  perspective: 1px;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+} */
+
+.parallax-layer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.parallax-layer-back {
+  transform: translateZ(-1px) scale(2);
+}
+
+.parallax-layer-base {
+  transform: translateZ(0);
+}
+
+.glassmorphic {
+  @apply bg-black bg-opacity-20 backdrop-filter backdrop-blur-lg border border-white/10 shadow-xl;
+}
+
+.animated-gradient-background {
+  background: linear-gradient(
+    -45deg,
+    rgba(15, 23, 42, 1),
+    rgba(30, 41, 59, 1),
+    rgba(51, 65, 85, 0.8),
+    rgba(15, 23, 42, 1)
+  );
+  background-size: 400% 400%;
+  animation: gradient-background 15s ease infinite;
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-mintellect-primary to-mintellect-accent;
+}
+
+/* Futuristic animations */
+@keyframes pulse-slow {
   0%,
   100% {
-    opacity: 0.3;
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes pulse-slower {
+  0%,
+  100% {
+    opacity: 0.4;
     transform: scale(1);
   }
   50% {
     opacity: 0.8;
-    transform: scale(1.5);
+    transform: scale(1.1);
   }
 }
 
-@keyframes gradientFlow {
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5), 0 0 10px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.7), 0 0 20px rgba(59, 130, 246, 0.5), 0 0 30px rgba(59, 130, 246, 0.3);
+  }
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse-once {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s infinite;
+}
+
+.animate-pulse-slower {
+  animation: pulse-slower 5s infinite;
+}
+
+.animate-glow {
+  animation: glow 2s infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+.animate-pulse-once {
+  animation: pulse-once 0.5s ease-out;
+}
+
+/* Glassmorphism improvements */
+.glassmorphic-card {
+  @apply bg-black/80 backdrop-blur-md border border-gray-800/70 shadow-lg;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3), 0 0 5px rgba(59, 130, 246, 0.2);
+}
+
+.hover-glow {
+  @apply transition-all duration-300;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), 0 0 5px rgba(59, 130, 246, 0.3);
+}
+
+/* Futuristic borders */
+.futuristic-border {
+  position: relative;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.futuristic-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 0.5rem;
+  padding: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(59, 130, 246, 0.2),
+    rgba(96, 165, 250, 0.2),
+    rgba(14, 165, 233, 0.2),
+    rgba(59, 130, 246, 0.2)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  background-size: 300% 100%;
+  animation: border-gradient 4s linear infinite;
+}
+
+@keyframes border-gradient {
+  0% {
+    background-position: 0% 0;
+  }
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+/* Enhanced workflow line animations */
+@keyframes flow {
   0% {
     background-position: 0% 50%;
   }
@@ -139,10 +365,295 @@
   }
 }
 
-@keyframes fadeInUp {
+.workflow-gradient {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 1) 0%, rgba(96, 165, 250, 1) 50%, rgba(14, 165, 233, 1) 100%);
+  background-size: 200% 200%;
+  animation: flow 5s ease infinite;
+}
+
+.workflow-step-active {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), 0 0 25px rgba(59, 130, 246, 0.3);
+}
+
+.workflow-step-completed {
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+}
+
+.workflow-line {
+  height: 2px;
+  transition: width 0.5s ease-in-out;
+}
+
+/* Roadmap specific styles */
+.roadmap-line {
+  background: linear-gradient(to bottom, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.5), rgba(59, 130, 246, 0.1));
+}
+
+.roadmap-dot {
+  background: radial-gradient(circle, rgba(59, 130, 246, 1) 0%, rgba(59, 130, 246, 0.3) 70%, rgba(59, 130, 246, 0) 100%);
+}
+
+.roadmap-step {
+  position: relative;
+}
+
+.roadmap-step::before {
+  content: "";
+  position: absolute;
+  width: 50px;
+  height: 1px;
+  background: linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.7));
+  top: 50%;
+  left: -50px;
+}
+
+.roadmap-step-right::before {
+  left: auto;
+  right: -50px;
+  background: linear-gradient(to left, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.7));
+}
+
+/* Futuristic styling */
+.glow-text {
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.7), 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+.subtle-glow {
+  text-shadow: 0 0 5px rgba(59, 130, 246, 0.3), 0 0 10px rgba(59, 130, 246, 0.2);
+}
+
+.glow-sm {
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.glow-hover:hover {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+}
+
+.border-glow {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+}
+
+.border-glow-sm {
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.bg-grid-pattern {
+  background-image: linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Add these new styles for enhanced buttons and roadmap */
+
+/* Gradient animations */
+@keyframes gradient-x {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-x {
+  animation: gradient-x 3s ease infinite;
+}
+
+.bg-size-200 {
+  background-size: 200% 200%;
+}
+
+.bg-deep-black {
+  background-color: #050505;
+}
+
+/* Hide scrollbar but allow scrolling */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Futuristic card hover effects */
+.futuristic-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.futuristic-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.futuristic-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent, rgba(59, 130, 246, 0.05), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.futuristic-card:hover::before {
+  transform: translateX(100%);
+}
+
+/* Neon text effect */
+.neon-text {
+  text-shadow: 0 0 5px rgba(59, 130, 246, 0.5), 0 0 10px rgba(59, 130, 246, 0.3), 0 0 15px rgba(59, 130, 246, 0.2);
+}
+
+/* Animated gradient border */
+.gradient-border {
+  position: relative;
+  border-radius: 0.5rem;
+}
+
+.gradient-border::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 0.5rem;
+  padding: 1px;
+  background: linear-gradient(to right, rgba(59, 130, 246, 0.5), rgba(96, 165, 250, 0.5), rgba(14, 165, 233, 0.5));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gradient-border:hover::after {
+  opacity: 1;
+}
+
+/* Futuristic button styles */
+.button-glow {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.button-glow::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.button-glow:hover::after {
+  opacity: 1;
+}
+
+/* Enhanced parallax effects */
+/* .parallax-element {
+  will-change: transform;
+  transition: transform 0.1s ease-out;
+} */
+
+/* Smooth section transitions */
+.section-transition {
+  position: relative;
+  z-index: 1;
+}
+
+.section-transition::before {
+  content: "";
+  position: absolute;
+  top: -50px;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.8));
+  z-index: -1;
+  pointer-events: none;
+}
+
+.section-transition::after {
+  content: "";
+  position: absolute;
+  bottom: -50px;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to top, transparent, rgba(0, 0, 0, 0.8));
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Enhanced scrolling */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .scroll-container {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+
+  .scroll-section {
+    height: 100vh;
+    scroll-snap-align: start;
+    position: relative;
+  }
+}
+
+/* Enhanced scrolling */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Add these enhanced section transition styles */
+
+/* Smooth section transitions */
+section {
+  position: relative;
+  transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Section fade effect */
+.section-fade {
+  opacity: 1;
+  transform: translateY(10px);
+  transition: opacity 0.5s ease-out, transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Section children animation */
+.section-child-active {
+  animation: sectionChildReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes sectionChildReveal {
   from {
-    opacity: 0;
-    transform: translateY(20px);
+    opacity: 0.98;
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -150,12 +661,106 @@
   }
 }
 
-@keyframes fadeIn {
-  from {
+/* Enhanced section dividers */
+.section-divider {
+  position: relative;
+  height: 120px;
+  margin-top: -60px;
+  margin-bottom: -60px;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.2) 50% /* Reduced opacity from 0.4 to 0.2 */,
+    rgba(0, 0, 0, 0) 100%
+  );
+  opacity: 0.5; /* Reduced from 0.7 to 0.5 */
+}
+
+/* Improved scroll behavior */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 0;
+}
+
+/* Scroll snap for better section alignment */
+@media (min-width: 768px) {
+  .scroll-container {
+    scroll-snap-type: y proximity;
+  }
+
+  section {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+}
+
+/* Remove section indicators */
+.section-indicator {
+  display: none;
+}
+
+/* Enhance parallax effect */
+.parallax-element {
+  will-change: transform;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Improved section transitions with backdrop blur */
+.section-transition-blur::before {
+  content: "";
+  position: absolute;
+  top: -100px;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.8));
+  backdrop-filter: blur(5px);
+  z-index: 1;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.section-transition-blur::after {
+  content: "";
+  position: absolute;
+  bottom: -100px;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to top, transparent, rgba(0, 0, 0, 0.8));
+  backdrop-filter: blur(5px);
+  z-index: 1;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
     opacity: 0;
   }
-  to {
-    opacity: 1;
+}
+
+.animate-ripple {
+  animation: ripple 1s linear forwards;
+}
+
+@keyframes shine {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
   }
+  100% {
+    transform: translateX(200%) rotate(45deg);
+  }
+}
+
+.shadow-glow {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
 }
 
