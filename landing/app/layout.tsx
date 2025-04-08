@@ -8,28 +8,26 @@ import OCConnectWrapper from "@/components/OCConnectWrapper"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Mintellect - AI-Powered Academic Integrity Platform",
-  description: "Verify, improve, and certify your academic work with Mintellect's AI-powered platform.",
-  generator: 'v0.dev'
+  title: "Mintellect",
+  description: "Mintellect - Your AI Learning Platform",
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const isSandboxMode = process.env.NODE_ENV !== 'production';
-  
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const opts = {
-    clientId: process.env.NEXT_PUBLIC_OCID_CLIENT_ID,
-    redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/redirect`,
+    redirectUri: 'https://www.mintellect.xyz/redirect',
     referralCode: 'PARTNER6'
   };
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <OCConnectWrapper opts={opts} sandboxMode={isSandboxMode}>
-            {children}
-          </OCConnectWrapper>
-        </ThemeProvider>
+        <OCConnectWrapper opts={opts} sandboxMode={true}>
+          {children}
+        </OCConnectWrapper>
       </body>
     </html>
   )

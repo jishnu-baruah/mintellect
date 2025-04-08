@@ -25,34 +25,24 @@ function LoginContent() {
     // Check for error in URL parameters
     const errorParam = searchParams.get('error')
     if (errorParam === 'authentication_failed') {
-      setError('Authentication failed. Please try again.')
+      setError('Authentication failed. Please try connecting your OCID again.')
     }
   }, [searchParams])
 
   const connectToOcid = async () => {
     try {
       setError("")
-      const response = await fetch('https://api.opencampus.sh/api/v1/auth/client-id', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch client ID');
+      console.log('Initiating OCID connection...')
+      if (!ocAuth) {
+        throw new Error('OCID authentication not initialized');
       }
-      
-      const { clientId } = await response.json();
-      
       await ocAuth.signInWithRedirect({ 
         state: 'opencampus',
-        redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/redirect`,
-        clientId
+        redirectUri: 'https://www.mintellect.xyz/redirect'
       })
     } catch (error: any) {
       console.error('OCID connection error:', error)
-      setError(error.message || "Failed to connect with OCID. Please try again.")
+      setError(typeof error === 'string' ? error : error?.message || "Failed to connect with OCID. Please try again.")
     }
   }
 
@@ -79,7 +69,7 @@ function LoginContent() {
 
     try {
       // Redirect to app.mintellect.xyz with the auth token and email
-      const redirectUrl = `https://app.mintellect.xyz?token=${authState?.accessToken}&email=${encodeURIComponent(email)}`;
+      const redirectUrl = `https://app.mintellect.xyz?token=${authState?.accessToken}&email=${encodeURIComponent(email)}&ocid=${authState?.OCId}`;
       window.location.href = redirectUrl;
     } catch (error: any) {
       console.error("Login error:", error)
@@ -219,10 +209,7 @@ function LoginContent() {
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-400">
-                  Don't have an account?{" "}
-                  <Link href="/register" className="text-mintellect-primary hover:underline">
-                    Register here
-                  </Link>
+                  Need help? Contact support for assistance.
                 </p>
               </div>
 
