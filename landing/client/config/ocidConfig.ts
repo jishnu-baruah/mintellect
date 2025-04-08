@@ -1,6 +1,6 @@
 export const ocidConfig = {
   opts: {
-    redirectUri: "https://symmetrical-space-guacamole-rjg6px4675xcxjr4-3000.app.github.dev/redirect",
+    redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/redirect`,
     referralCode: "PARTNER6",
   }
 }

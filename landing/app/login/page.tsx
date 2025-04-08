@@ -32,9 +32,23 @@ function LoginContent() {
   const connectToOcid = async () => {
     try {
       setError("")
+      const response = await fetch('https://api.opencampus.sh/api/v1/auth/client-id', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch client ID');
+      }
+      
+      const { clientId } = await response.json();
+      
       await ocAuth.signInWithRedirect({ 
         state: 'opencampus',
-        redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/redirect`
+        redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/redirect`,
+        clientId
       })
     } catch (error: any) {
       console.error('OCID connection error:', error)
