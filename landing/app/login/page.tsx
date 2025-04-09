@@ -24,8 +24,21 @@ function LoginContent() {
   useEffect(() => {
     // Check for error in URL parameters
     const errorParam = searchParams.get('error')
-    if (errorParam === 'authentication_failed') {
+    const ocidParam = searchParams.get('ocid')
+    const tokenParam = searchParams.get('token')
+    const successParam = searchParams.get('success')
+
+    // Clear any existing errors
+    setError('')
+
+    // Only show error if there's an explicit error parameter and it's not a success case
+    if (errorParam === 'authentication_failed' && !successParam && !ocidParam) {
       setError('Authentication failed. Please try connecting your OCID again.')
+    }
+
+    // If we have OCID from redirect, clear any errors
+    if (ocidParam || successParam) {
+      setError('')
     }
   }, [searchParams])
 
@@ -54,7 +67,7 @@ function LoginContent() {
       return
     }
 
-    if (!authState?.isAuthenticated) {
+    if (!authState?.OCId && !searchParams.get('ocid')) {
       setError("Please connect your OCID first")
       return
     }
@@ -68,8 +81,11 @@ function LoginContent() {
     setError("")
 
     try {
+      const ocid = authState?.OCId || searchParams.get('ocid')
+      const token = authState?.accessToken || searchParams.get('token')
+      
       // Redirect to app.mintellect.xyz with the auth token and email
-      const redirectUrl = `https://app.mintellect.xyz?token=${authState?.accessToken}&email=${encodeURIComponent(email)}&ocid=${authState?.OCId}`;
+      const redirectUrl = `https://app.mintellect.xyz?token=${token}&email=${encodeURIComponent(email)}&ocid=${ocid}`;
       window.location.href = redirectUrl;
     } catch (error: any) {
       console.error("Login error:", error)
@@ -91,145 +107,67 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Animated background with subtle tech pattern */}
-      <div className="fixed inset-0 -z-10">
-        <AnimatedBackground />
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-950 to-black opacity-90"></div>
-        <div className="absolute inset-0 bg-grid-pattern"></div>
-      </div>
-
+    <div className="min-h-screen bg-black">
       <Navbar />
-
-      <main className="container mx-auto py-16 px-4">
+      <AnimatedBackground />
+      <div className="container mx-auto px-4 py-16">
         <div className="max-w-md mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <GlassCard className="p-8 border-mintellect-primary/20 relative overflow-hidden">
-              {/* Decorative elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-mintellect-primary/5 rounded-full blur-3xl -z-10"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-mintellect-secondary/5 rounded-full blur-3xl -z-10"></div>
+          <GlassCard className="p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-white mb-2">Welcome to Mintellect</h1>
+              <p className="text-gray-400">Connect your OCID and enter your email to continue</p>
+            </div>
 
-              <div className="flex justify-center mb-6">
-                <div className="p-3 rounded-full bg-mintellect-primary/10 border border-mintellect-primary/30 glow-sm">
-                  <Shield className="h-8 w-8 text-mintellect-primary" />
-                </div>
+            {error && (
+              <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <p className="text-red-400">{error}</p>
+              </div>
+            )}
+
+            {(!authState?.OCId && !searchParams.get('ocid')) ? (
+              <RippleButton
+                onClick={connectToOcid}
+                className="w-full mb-4"
+                disabled={isSubmitting}
+              >
+                <Shield className="w-5 h-5 mr-2" />
+                Connect OCID
+              </RippleButton>
+            ) : (
+              <div className="mb-4 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                <p className="text-green-400">OCID Connected: {authState?.OCId || searchParams.get('ocid')}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleLogin}>
+              <div className="mb-4">
+                <label className="block text-gray-400 mb-2">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2 bg-black/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-mintellect-primary"
+                  placeholder="Enter your email"
+                  required
+                />
               </div>
 
-              <h1 className="text-2xl font-bold text-center mb-6">Login with OCID</h1>
-
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6 text-sm">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleLogin}>
-                <div className="space-y-5">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium mb-1 text-gray-300">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-mintellect-primary/50 focus:border-mintellect-primary/50 transition-colors"
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label htmlFor="ocid" className="block text-sm font-medium text-gray-300">
-                        OCID
-                      </label>
-                      <span className="text-xs text-mintellect-primary">Required</span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        id="ocid"
-                        value={authState?.OCId || ""}
-                        readOnly
-                        className="w-full px-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-mintellect-primary/50 focus:border-mintellect-primary/50 transition-colors"
-                        placeholder="Connect your OCID"
-                      />
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                        {authState?.isAuthenticated && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="h-2 w-2 bg-green-400 rounded-full"
-                          />
-                        )}
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <RippleButton
-                        type="button"
-                        variant={authState?.isAuthenticated ? "outline" : "default"}
-                        size="sm"
-                        className="w-full"
-                        onClick={connectToOcid}
-                        disabled={isSubmitting || authState?.isAuthenticated}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Connecting...
-                          </>
-                        ) : authState?.isAuthenticated ? (
-                          <>Connected</>
-                        ) : (
-                          <>Connect to OCID</>
-                        )}
-                      </RippleButton>
-                    </div>
-                  </div>
-
-                  <div>
-                    <RippleButton type="submit" className="w-full" disabled={isSubmitting || !authState?.isAuthenticated}>
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Logging in...
-                        </>
-                      ) : (
-                        <>
-                          Login
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
-                      )}
-                    </RippleButton>
-                  </div>
-                </div>
-              </form>
-
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-400">
-                  Need help? Contact support for assistance.
-                </p>
-              </div>
-
-              {/* Decorative tech pattern */}
-              <div className="absolute bottom-2 right-2 opacity-10">
-                <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="30" cy="30" r="20" stroke="url(#paint0_linear)" strokeWidth="0.5" />
-                  <circle cx="30" cy="30" r="10" stroke="url(#paint0_linear)" strokeWidth="0.5" />
-                  <defs>
-                    <linearGradient id="paint0_linear" x1="0" y1="0" x2="60" y2="60" gradientUnits="userSpaceOnUse">
-                      <stop stopColor="#6366f1" />
-                      <stop offset="1" stopColor="#8b5cf6" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-              </div>
-            </GlassCard>
-          </motion.div>
+              <RippleButton
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                ) : (
+                  <ArrowRight className="w-5 h-5 mr-2" />
+                )}
+                Continue
+              </RippleButton>
+            </form>
+          </GlassCard>
         </div>
-      </main>
+      </div>
     </div>
   )
 }

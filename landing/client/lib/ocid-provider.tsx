@@ -5,6 +5,7 @@ import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { useToast } from "@/components/ui/use-toast"
 import { useOCAuth } from "@opencampus/ocid-connect-js"
+import { ocidConfig } from "@/config/ocidConfig"
 
 type OCIDContextType = {
   ocid: string | null
@@ -26,18 +27,34 @@ export const useOCID = () => useContext(OCIDContext)
 
 export const OCIDProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast()
-  const { isInitialized, authState, ocAuth } = useOCAuth()
+  const { isInitialized, authState, ocAuth } = useOCAuth(ocidConfig)
   const [isConnecting, setIsConnecting] = useState(false)
 
+  useEffect(() => {
+    if (!isInitialized) {
+      console.error('OCID authentication not initialized')
+      return
+    }
+  }, [isInitialized])
+
   const connect = async () => {
+    if (!isInitialized) {
+      toast({
+        variant: "destructive",
+        title: "Connection Failed",
+        description: "Authentication system is not initialized. Please try again.",
+      })
+      return
+    }
+
     setIsConnecting(true)
     try {
       await ocAuth.signInWithRedirect({
         state: "opencampus",
-        redirectUri: "https://symmetrical-space-guacamole-rjg6px4675xcxjr4-3000.app.github.dev/redirect", // Update to the correct redirect URI
-        referralCode: "PARTNER6", // Add referral code
-        domain: "", // Leave blank to use the current domain
-        sameSite: true, // Specify SameSite behavior
+        redirectUri: ocidConfig.opts.redirectUri,
+        referralCode: ocidConfig.opts.referralCode,
+        domain: "",
+        sameSite: true,
       })
     } catch (error) {
       console.error("Login error:", error)

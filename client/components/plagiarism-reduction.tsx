@@ -6,6 +6,7 @@ import { GlassCard } from "./ui/glass-card"
 import { RippleButton } from "./ui/ripple-button"
 import { Edit, Lock, Coins, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { type UserModel, UserTier } from "@/types/user"
+import PlagiarismPayment from "./PlagiarismPayment"
 
 interface PlagiarismResult {
   originalityScore: number
@@ -34,6 +35,7 @@ export function PlagiarismReduction({ documentId, onComplete }: PlagiarismReduct
   const [showCitationReduction, setShowCitationReduction] = useState(false)
   const [citationsReduced, setCitationsReduced] = useState(false)
   const [user, setUser] = useState<UserModel | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // Load user data on component mount
   useEffect(() => {
@@ -47,7 +49,7 @@ export function PlagiarismReduction({ documentId, onComplete }: PlagiarismReduct
   const isPremium = user?.userTier === UserTier.Premium
 
   // Token costs
-  const PLAGIARISM_REDUCTION_COST = 25
+  const PLAGIARISM_REDUCTION_COST = 0.000062
 
   const runPlagiarismCheck = () => {
     setIsLoading(true)
@@ -137,33 +139,7 @@ export function PlagiarismReduction({ documentId, onComplete }: PlagiarismReduct
 
   const handleTokenPayment = () => {
     setProcessingPayment(true)
-
-    // Simulate payment processing
-    setTimeout(() => {
-      setProcessingPayment(false)
-
-      // Check if user has enough credits
-      if (user && user.credits >= PLAGIARISM_REDUCTION_COST) {
-        // Payment successful
-        setPaymentStep("success")
-
-        // Update user credits
-        const updatedUser = {
-          ...user,
-          credits: user.credits - PLAGIARISM_REDUCTION_COST,
-        }
-        setUser(updatedUser)
-        localStorage.setItem("user", JSON.stringify(updatedUser))
-
-        // After showing success message, proceed to the reduction interface
-        setTimeout(() => {
-          setPaymentStep(null)
-        }, 1500)
-      } else {
-        // Not enough tokens
-        setPaymentStep("error")
-      }
-    }, 2000)
+    setPaymentStep('paying')
   }
 
   // Render the token payment layer (Layer 1.5)
@@ -256,6 +232,34 @@ export function PlagiarismReduction({ documentId, onComplete }: PlagiarismReduct
               </div>
             </div>
           </div>
+        </motion.div>
+      )
+    } else if (paymentStep === "paying") {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full py-6"
+        >
+          <PlagiarismPayment
+            onPaymentSuccess={() => {
+              setPaymentStep("success")
+              // Update user credits after successful payment
+              if (user) {
+                const updatedUser = {
+                  ...user,
+                  credits: user.credits - PLAGIARISM_REDUCTION_COST,
+                }
+                setUser(updatedUser)
+                localStorage.setItem("user", JSON.stringify(updatedUser))
+              }
+            }}
+            onPaymentError={(error: string) => {
+              setPaymentStep("error")
+              setError(error)
+            }}
+          />
         </motion.div>
       )
     } else if (paymentStep === "success") {
