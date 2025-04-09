@@ -1,193 +1,170 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
-import { motion } from "framer-motion"
-import { Award, Download, FileText, Upload } from "lucide-react"
 import Link from "next/link"
-import { formatPercentage, getTrustScoreClass } from "@/lib/utils"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { motion } from "framer-motion"
+import { RippleButton } from "@/components/ui/ripple-button"
+import { GlassCard } from "@/components/ui/glass-card"
+import { FileText, Upload, BarChart2, Award, Eye, ArrowRight } from "lucide-react"
 
-export default function DashboardPage() {
-  const [trustScore, setTrustScore] = useState<number | null>(null)
-  const { toast } = useToast()
+export default function Dashboard() {
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [greeting, setGreeting] = useState("")
+  const [currentTime, setCurrentTime] = useState("")
 
+  // Initialize greeting and time
   useEffect(() => {
-    // Get trust score from session storage
-    const storedTrustScore = sessionStorage.getItem("trustScore")
-    if (storedTrustScore) {
-      setTrustScore(Number.parseFloat(storedTrustScore))
-    } else {
-      // If no trust score, generate a random one
-      const score = 0.5 + Math.random() * 0.4
-      setTrustScore(score)
-    }
+    setIsLoaded(true)
+    updateGreeting()
+
+    // Update time every second
+    const interval = setInterval(updateGreeting, 1000)
+    return () => clearInterval(interval)
   }, [])
 
-  const handleDownloadCertificate = () => {
-    toast({
-      title: "Certificate Downloaded",
-      description: "Your NFT certificate has been downloaded",
-    })
+  // Function to update greeting and time
+  const updateGreeting = () => {
+    const now = new Date()
+    const hour = now.getHours()
+    const name = "User" // You could replace this with the user's name if available
+
+    let newGreeting = ""
+    if (hour < 12) newGreeting = `Good morning, ${name}`
+    else if (hour < 17) newGreeting = `Good afternoon, ${name}`
+    else if (hour < 21) newGreeting = `Good evening, ${name}`
+    else newGreeting = `Good night, ${name}`
+
+    setGreeting(newGreeting)
+    setCurrentTime(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
   }
 
-  const papers = [
-    {
-      title: "Impact of Climate Change on Global Ecosystems",
-      date: "May 15, 2023",
-      status: "Verified",
-      score: trustScore || 0.85,
-      hasNft: true,
-    },
-    {
-      title: "Machine Learning Applications in Healthcare",
-      date: "March 3, 2023",
-      status: "Verified",
-      score: 0.78,
-      hasNft: true,
-    },
-    {
-      title: "Quantum Computing: Current Challenges",
-      date: "January 20, 2023",
-      status: "In Review",
-      score: 0.62,
-      hasNft: false,
-    },
-  ]
-
   return (
-    <div className="container max-w-6xl py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="space-y-4 mb-8"
-      >
-        <h1 className="text-3xl font-bold">Your Dashboard</h1>
-        <p className="text-muted-foreground">Manage your research papers and view verification status.</p>
-      </motion.div>
+    <div className="min-h-screen bg-black">
+      <main className="py-6 px-4 hide-scrollbar">
+        {/* Welcome section with real-time greeting */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <h1 className="text-2xl md:text-3xl font-bold text-white">
+            {isLoaded ? greeting : "Welcome, User"}
+          </h1>
+          <p className="text-gray-400 mt-1">
+            Welcome to your Mintellect dashboard
+            <span className="ml-2 text-sm text-gray-500">
+              {isLoaded ? currentTime : ""}
+            </span>
+          </p>
+        </motion.div>
 
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-6">
+        {/* Main content area */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Left column - Recent Activity */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="rounded-lg border bg-card p-6 shadow-sm"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Your Papers</h2>
-              <Button asChild>
-                <Link href="/">
-                  <Upload className="mr-2 h-4 w-4" /> Upload New Paper
-                </Link>
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              {papers.map((paper, index) => (
-                <Card key={index} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{paper.title}</CardTitle>
-                      <Badge variant={paper.status === "Verified" ? "default" : "outline"}>{paper.status}</Badge>
-                    </div>
-                    <CardDescription>Uploaded on {paper.date}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Trust Score:</span>
-                      <div
-                        className={`trust-score-ring ${getTrustScoreClass(paper.score)} px-2 py-0.5 rounded-full text-xs font-medium`}
-                      >
-                        {formatPercentage(paper.score)}
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/plagiarism">
-                        <FileText className="mr-2 h-4 w-4" /> View Details
-                      </Link>
-                    </Button>
-                    {paper.hasNft && (
-                      <Button size="sm" onClick={handleDownloadCertificate}>
-                        <Download className="mr-2 h-4 w-4" /> Certificate
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-
-        <div className="space-y-6">
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="rounded-lg border bg-card p-6 shadow-sm"
+            className="lg:col-span-2"
           >
-            <h2 className="text-xl font-semibold mb-4">Statistics</h2>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">Papers Uploaded</span>
-                  <span className="text-sm font-medium">3</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: "100%" }}></div>
-                </div>
+            <GlassCard className="h-full bg-black/70 border-gray-800/50">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="text-lg sm:text-xl font-bold text-white">Recent Activity</h2>
+                <Link href="/documents">
+                  <button className="text-mintellect-primary text-sm flex items-center hover:underline">
+                    View All <ArrowRight className="h-3 w-3 ml-1" />
+                  </button>
+                </Link>
               </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">Papers Verified</span>
-                  <span className="text-sm font-medium">2</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: "66.7%" }}></div>
-                </div>
+
+              <div className="flex flex-col items-center justify-center h-48 sm:h-64 text-center px-2">
+                <FileText className="h-8 w-8 sm:h-12 sm:w-12 mb-3 sm:mb-4 text-gray-700" />
+                <p className="text-gray-400 text-sm sm:text-base mb-4 sm:mb-6">No recent activity</p>
+                <Link href="/workflow" className="w-full sm:w-auto">
+                  <RippleButton variant="outline" size="sm" className="w-full sm:w-auto" fullWidth>
+                    Start New Paper
+                  </RippleButton>
+                </Link>
               </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">NFT Certificates</span>
-                  <span className="text-sm font-medium">2</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: "66.7%" }}></div>
-                </div>
-              </div>
-            </div>
+            </GlassCard>
           </motion.div>
 
+          {/* Right column - Upload and Info */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="rounded-lg border bg-card p-6 shadow-sm"
+            className="space-y-4 sm:space-y-6"
           >
-            <h2 className="text-xl font-semibold mb-4">Latest Certificate</h2>
-            <div className="flex flex-col items-center">
-              <div className="w-24 h-24 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                <Award className="h-12 w-12 text-primary" />
+            {/* Upload card */}
+            <GlassCard className="bg-black/70 border-gray-800/50 overflow-hidden relative">
+              {/* Decorative elements */}
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-mintellect-primary/5 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-20 -left-10 w-40 h-40 bg-mintellect-secondary/5 rounded-full blur-3xl"></div>
+
+              <div className="relative">
+                <div className="flex flex-col items-center text-center">
+                  <div className="p-2 sm:p-3 rounded-full bg-mintellect-primary/10 mb-3 sm:mb-4 border border-mintellect-primary/20 glow-sm">
+                    <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-mintellect-primary" />
+                  </div>
+
+                  <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-white">New Research</h2>
+
+                  <Link href="/workflow" className="w-full">
+                    <RippleButton
+                      className="w-full bg-gradient-to-r from-mintellect-primary to-mintellect-secondary text-sm md:text-base py-2 sm:py-2.5 md:py-3"
+                      variant="glowing"
+                      fullWidth
+                    >
+                      <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+                      <span className="whitespace-nowrap">Upload Paper</span>
+                    </RippleButton>
+                  </Link>
+                </div>
               </div>
-              <h3 className="text-lg font-medium mb-2">Impact of Climate Change</h3>
-              <p className="text-center text-muted-foreground mb-4">Verified on May 15, 2023</p>
-              <div className="bg-muted p-3 rounded-md font-mono text-xs w-full overflow-x-auto mb-4">
-                <p>Token ID: 8294</p>
-                <p className="mt-1">Contract: 0x3f9e8d7c6b5a4e3f2d1c0b9a8e7d6c5b</p>
+            </GlassCard>
+
+            {/* Quick links */}
+            <GlassCard className="bg-black/70 border-gray-800/50">
+              <h2 className="text-lg sm:text-xl font-bold mb-4 text-white">Quick Access</h2>
+              <div className="space-y-1.5 sm:space-y-3">
+                <QuickLinkItem title="Verification" icon={FileText} href="/workflow" />
+                <QuickLinkItem title="Documents" icon={Eye} href="/documents" />
+                <QuickLinkItem title="Analytics" icon={BarChart2} href="/analytics" />
+                <QuickLinkItem title="Certificates" icon={Award} href="/nft-gallery" />
               </div>
-              <Button onClick={handleDownloadCertificate} className="w-full">
-                <Download className="mr-2 h-4 w-4" /> Download Certificate
-              </Button>
-            </div>
+            </GlassCard>
           </motion.div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
 
+// Quick Link Item Component
+function QuickLinkItem({
+  title,
+  icon: Icon,
+  href,
+}: {
+  title: string
+  icon: React.ElementType
+  href: string
+}) {
+  return (
+    <Link href={href} className="block w-full">
+      <div className="flex items-center gap-3 p-3 md:p-3.5 rounded-lg hover:bg-gray-900/50 transition-colors group">
+        <div className="p-1.5 sm:p-2 rounded-lg bg-gray-800 group-hover:bg-mintellect-primary/20 transition-colors flex-shrink-0">
+          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-mintellect-primary" />
+        </div>
+        <h3 className="font-medium text-xs sm:text-sm text-white group-hover:text-mintellect-primary transition-colors truncate">
+          {title}
+        </h3>
+        <ArrowRight className="h-3.5 w-3.5 ml-auto text-gray-500 group-hover:text-mintellect-primary transition-colors" />
+      </div>
+    </Link>
+  )
+}
