@@ -2,7 +2,7 @@
 
 **The Future of Research. On-Chain.**
 
-Mintellect is a Web3-powered research publishing platform where innovation meets credibility. Our platform allows researchers to mint their papers as NFTs, leverage AI for trust scoring, and undergo human peer-review — all secured immutably on the blockchain.
+Mintellect is a AI + BLockchain -powered research publishing platform where innovation meets credibility. Our platform allows researchers to mint their papers as NFTs, leverage AI for trust scoring, and undergo human peer-review — all secured immutably on the blockchain.
 
 ---
 
