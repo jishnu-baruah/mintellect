@@ -1,193 +1,187 @@
 "use client"
 
+import type React from "react"
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
-import { motion } from "framer-motion"
-import { Award, Download, FileText, Upload } from "lucide-react"
 import Link from "next/link"
-import { formatPercentage, getTrustScoreClass } from "@/lib/utils"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { motion } from "framer-motion"
+import { RippleButton } from "@/components/ui/ripple-button"
+import { GlassCard } from "@/components/ui/glass-card"
+import { AnimatedLogo } from "@/components/ui/animated-logo"
+import { Upload, ArrowRight, FileText } from "lucide-react"
+import { ethers } from "ethers"
+import contractABI from "@/lib/MintellectNFT_ABI.json"
+import { useWallet } from "@/components/wallet-provider"
 
-export default function DashboardPage() {
-  const [trustScore, setTrustScore] = useState<number | null>(null)
-  const { toast } = useToast()
+const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004"
+
+export default function Dashboard() {
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [greeting, setGreeting] = useState("")
+  const [currentTime, setCurrentTime] = useState("")
+  const [recentNFTs, setRecentNFTs] = useState<any[]>([])
+  const [activityLoading, setActivityLoading] = useState(false)
+  const { walletAddress } = useWallet();
 
   useEffect(() => {
-    // Get trust score from session storage
-    const storedTrustScore = sessionStorage.getItem("trustScore")
-    if (storedTrustScore) {
-      setTrustScore(Number.parseFloat(storedTrustScore))
-    } else {
-      // If no trust score, generate a random one
-      const score = 0.5 + Math.random() * 0.4
-      setTrustScore(score)
-    }
+    setIsLoaded(true)
+    updateGreeting()
+    const interval = setInterval(updateGreeting, 1000)
+    return () => clearInterval(interval)
   }, [])
 
-  const handleDownloadCertificate = () => {
-    toast({
-      title: "Certificate Downloaded",
-      description: "Your NFT certificate has been downloaded",
-    })
+  const updateGreeting = () => {
+    const now = new Date()
+    const hour = now.getHours()
+    const name = "User"
+    let newGreeting = ""
+    if (hour < 12) newGreeting = `Good morning, ${name}`
+    else if (hour < 17) newGreeting = `Good afternoon, ${name}`
+    else if (hour < 21) newGreeting = `Good evening, ${name}`
+    else newGreeting = `Good night, ${name}`
+    setGreeting(newGreeting)
+    setCurrentTime(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
   }
 
-  const papers = [
-    {
-      title: "Impact of Climate Change on Global Ecosystems",
-      date: "May 15, 2023",
-      status: "Verified",
-      score: trustScore || 0.85,
-      hasNft: true,
-    },
-    {
-      title: "Machine Learning Applications in Healthcare",
-      date: "March 3, 2023",
-      status: "Verified",
-      score: 0.78,
-      hasNft: true,
-    },
-    {
-      title: "Quantum Computing: Current Challenges",
-      date: "January 20, 2023",
-      status: "In Review",
-      score: 0.62,
-      hasNft: false,
-    },
-  ]
+  useEffect(() => {
+    const fetchRecentNFTs = async () => {
+      setActivityLoading(true)
+      try {
+        if (!(window as any).ethereum) return
+        const provider = new ethers.BrowserProvider((window as any).ethereum)
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider)
+        const total = await contract.tokenCounter()
+        const accounts = await provider.send("eth_accounts", [])
+        const currentAddress = accounts[0]?.toLowerCase()
+        const nfts: any[] = []
+        for (let i = Number(total) - 1; i >= 0 && nfts.length < 3; i--) {
+          try {
+            const tokenId = i.toString()
+            const tokenURI = await contract.tokenURI(tokenId)
+            const owner = (await contract.ownerOf(tokenId)).toLowerCase()
+            if (owner !== currentAddress) continue
+            const ipfsUrl = tokenURI.startsWith("ipfs://")
+              ? `https://gateway.pinata.cloud/ipfs/${tokenURI.replace("ipfs://", "")}`
+              : tokenURI
+            const metaRes = await fetch(ipfsUrl)
+            const meta = await metaRes.json()
+            nfts.push({
+              tokenId,
+              documentName: meta.name || "Untitled Document",
+              mintedDate: meta.timestamp ? new Date(meta.timestamp).toLocaleDateString() : "-",
+              certificateUrl: `/certificates/${tokenId}`,
+            })
+          } catch {}
+        }
+        setRecentNFTs(nfts)
+      } catch {}
+      setActivityLoading(false)
+    }
+    fetchRecentNFTs()
+  }, [walletAddress])
 
   return (
-    <div className="container max-w-6xl py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="space-y-4 mb-8"
-      >
-        <h1 className="text-3xl font-bold">Your Dashboard</h1>
-        <p className="text-muted-foreground">Manage your research papers and view verification status.</p>
-      </motion.div>
+    <div className="min-h-screen bg-black relative">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-20 w-72 h-72 bg-mintellect-primary/20 rounded-full blur-3xl opacity-30"></div>
+        <div className="absolute bottom-1/3 right-0 w-80 h-80 bg-purple-600/10 rounded-full blur-3xl opacity-20"></div>
+      </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="rounded-lg border bg-card p-6 shadow-sm"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Your Papers</h2>
-              <Button asChild>
-                <Link href="/">
-                  <Upload className="mr-2 h-4 w-4" /> Upload New Paper
-                </Link>
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              {papers.map((paper, index) => (
-                <Card key={index} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{paper.title}</CardTitle>
-                      <Badge variant={paper.status === "Verified" ? "default" : "outline"}>{paper.status}</Badge>
-                    </div>
-                    <CardDescription>Uploaded on {paper.date}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Trust Score:</span>
-                      <div
-                        className={`trust-score-ring ${getTrustScoreClass(paper.score)} px-2 py-0.5 rounded-full text-xs font-medium`}
-                      >
-                        {formatPercentage(paper.score)}
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/plagiarism">
-                        <FileText className="mr-2 h-4 w-4" /> View Details
-                      </Link>
-                    </Button>
-                    {paper.hasNft && (
-                      <Button size="sm" onClick={handleDownloadCertificate}>
-                        <Download className="mr-2 h-4 w-4" /> Certificate
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          </motion.div>
+      <header className="relative z-10 border-b border-gray-800 py-8 bg-black">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center gap-6">
+          {/* Removed <AnimatedLogo /> */}
+          <div>
+            <motion.h1
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-3xl md:text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400"
+            >
+              Dashboard
+            </motion.h1>
+            <p className="text-gray-400 max-w-md">
+              Your personal web3 research hub: track your activity, mint new research, and manage your academic credentials.
+            </p>
+          </div>
         </div>
+      </header>
 
-        <div className="space-y-6">
+      <main className="container mx-auto py-8 px-4 relative z-10">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Main content - Recent Activity */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="rounded-lg border bg-card p-6 shadow-sm"
+            className="lg:w-2/3"
           >
-            <h2 className="text-xl font-semibold mb-4">Statistics</h2>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">Papers Uploaded</span>
-                  <span className="text-sm font-medium">3</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: "100%" }}></div>
-                </div>
+            <GlassCard className="h-full overflow-hidden transition-all duration-300">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-mintellect-primary" />
+                  Recent Activity
+                </h2>
+                <Link href="/dashboard/documents">
+                  <button className="text-mintellect-primary text-sm flex items-center hover:underline">
+                    View All <ArrowRight className="h-3 w-3 ml-1" />
+                  </button>
+                </Link>
               </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">Papers Verified</span>
-                  <span className="text-sm font-medium">2</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: "66.7%" }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">NFT Certificates</span>
-                  <span className="text-sm font-medium">2</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary" style={{ width: "66.7%" }}></div>
-                </div>
-              </div>
-            </div>
+              {activityLoading ? (
+                <div className="text-gray-400 text-sm">Loading recent activity...</div>
+              ) : recentNFTs.length === 0 ? (
+                <div className="text-gray-400 text-sm">No recent activity</div>
+              ) : (
+                <ul className="w-full space-y-3">
+                  {recentNFTs.map((nft) => (
+                    <li key={nft.tokenId} className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 last:pb-0">
+                      <div className="flex-1">
+                        <span className="font-medium text-white">{nft.documentName}</span>
+                        <span className="ml-2 text-xs text-gray-500">Minted {nft.mintedDate}</span>
+                      </div>
+                      <Link href={nft.certificateUrl} className="mt-2 sm:mt-0">
+                        <RippleButton size="sm" variant="outline" className="px-4 py-1 font-medium">
+                          View
+                        </RippleButton>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </GlassCard>
           </motion.div>
 
+          {/* Right column - Upload Paper */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="rounded-lg border bg-card p-6 shadow-sm"
+            className="lg:w-1/3 space-y-6"
           >
-            <h2 className="text-xl font-semibold mb-4">Latest Certificate</h2>
-            <div className="flex flex-col items-center">
-              <div className="w-24 h-24 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                <Award className="h-12 w-12 text-primary" />
+            <GlassCard className="overflow-hidden relative">
+              {/* Decorative elements */}
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-mintellect-primary/5 rounded-full blur-3xl"></div>
+              <div className="absolute -bottom-20 -left-10 w-40 h-40 bg-mintellect-secondary/5 rounded-full blur-3xl"></div>
+              <div className="relative flex flex-col items-center text-center p-6">
+                <div className="p-3 rounded-full bg-mintellect-primary/10 mb-4 border border-mintellect-primary/20 glow-sm">
+                  <Upload className="h-8 w-8 text-mintellect-primary" />
+                </div>
+                <h2 className="text-lg sm:text-xl font-bold mb-3 text-white">New Research</h2>
+                <Link href="/workflow" className="w-full">
+                  <RippleButton
+                    className="w-full bg-gradient-to-r from-mintellect-primary to-mintellect-secondary text-sm md:text-base py-2.5 md:py-3"
+                    variant="glowing"
+                    fullWidth
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    <span className="whitespace-nowrap">Upload Paper</span>
+                  </RippleButton>
+                </Link>
               </div>
-              <h3 className="text-lg font-medium mb-2">Impact of Climate Change</h3>
-              <p className="text-center text-muted-foreground mb-4">Verified on May 15, 2023</p>
-              <div className="bg-muted p-3 rounded-md font-mono text-xs w-full overflow-x-auto mb-4">
-                <p>Token ID: 8294</p>
-                <p className="mt-1">Contract: 0x3f9e8d7c6b5a4e3f2d1c0b9a8e7d6c5b</p>
-              </div>
-              <Button onClick={handleDownloadCertificate} className="w-full">
-                <Download className="mr-2 h-4 w-4" /> Download Certificate
-              </Button>
-            </div>
+            </GlassCard>
           </motion.div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
-

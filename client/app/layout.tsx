@@ -1,66 +1,45 @@
-"use client"
-
 import type React from "react"
+import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import ClientLayout from "./clientLayout"
-import OCConnectWrapper from "@/components/OCConnectWrapper"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
-import Header from "@/components/header"
-import { ocidConfig } from "@/config/ocidConfig"
-import { LoginCallBack } from "@opencampus/ocid-connect-js";
-import { usePathname } from "next/navigation"; // Use `usePathname` instead of `useRouter`
-import { useEffect, useState } from "react";
+import { Navbar } from "@/components/navbar"
+import { WalletProvider } from "@/components/wallet-provider"
+import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { usePathname } from "next/navigation"
 
 const inter = Inter({ subsets: ["latin"] })
 
-
-
-const loginSuccess = () => {
-  console.log("Login successful!");
-};
-
-const loginError = () => {
-  console.error("Login failed!");
-};
-
-function CustomErrorComponent() {
-  return <div>Error Logging in: Something went wrong!</div>;
-}
-
-function CustomLoadingComponent() {
-  return <div>Loading...</div>;
+export const metadata: Metadata = {
+  title: "Mintellect - AI-Powered Academic Integrity Platform",
+  description: "Verify, improve, and certify your academic work with Mintellect's AI-powered platform.",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
-  const pathname = usePathname(); // Get the current pathname
-
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} web3-bg min-h-screen`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <OCConnectWrapper opts={ocidConfig.opts} sandboxMode={true}>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Toaster />
+    <html lang="en" className="dark">
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <WalletProvider>
+            <div className="flex h-screen bg-black overflow-hidden">
+              <DashboardSidebar className="hidden md:flex" />
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="fixed inset-0 -z-10 pointer-events-none">
+                  <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+                  <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-mintellect-primary/5 rounded-full filter blur-[80px]"></div>
+                  <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-mintellect-secondary/5 rounded-full filter blur-[80px]"></div>
+                </div>
+                <main className="flex-1 overflow-y-auto hide-scrollbar">{children}</main>
+              </div>
             </div>
-          </OCConnectWrapper>
-          {pathname === "/redirect" && (
-            <LoginCallBack
-              customErrorComponent={CustomErrorComponent}
-              customLoadingComponent={CustomLoadingComponent}
-              successCallback={loginSuccess}
-              errorCallback={loginError}
-            />
-          )}
+          </WalletProvider>
         </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }

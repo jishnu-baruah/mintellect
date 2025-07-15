@@ -1,20 +1,38 @@
-import type { Metadata } from 'next'
-import './globals.css'
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import OCConnectWrapper from "@/components/OCConnectWrapper"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.dev',
+  title: "Mintellect",
+  description: "Mintellect - Your AI Learning Platform",
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
+  const opts = {
+    redirectUri: 'https://www.mintellect.xyz/redirect',
+    referralCode: 'PARTNER6'
+  };
+
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={inter.className}>
+        <OCConnectWrapper opts={opts} sandboxMode={true}>
+          {children}
+        </OCConnectWrapper>
+      </body>
     </html>
   )
 }
+
+
+
+import './globals.css'

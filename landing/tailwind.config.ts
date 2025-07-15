@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss"
 
-const config = {
+const config: Config = {
   darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
@@ -9,7 +9,6 @@ const config = {
     "./src/**/*.{ts,tsx}",
     "*.{js,ts,jsx,tsx,mdx}",
   ],
-  prefix: "",
   theme: {
     container: {
       center: true,
@@ -26,26 +25,12 @@ const config = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          dark: "#13111c", // Background dark blue
-          DEFAULT: "#1f3f77", // Main blue
-          light: "#3a6bc4", // Light blue accent
+          DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          DEFAULT: "#6f278e", // Purple accent
-          light: "#9d4edd", // Light purple
+          DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
-        },
-        text: {
-          primary: "#ffffff", // Primary text (white)
-          secondary: "rgba(255, 255, 255, 0.7)", // Secondary text (semi-transparent white)
-          muted: "rgba(255, 255, 255, 0.5)", // Muted text
-        },
-        ui: {
-          background: "#13111c", // Main background
-          card: "#1a1625", // Card background
-          border: "#2d2b38", // Border color
-          hover: "#2a2d3e", // Hover state
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -67,6 +52,14 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Custom colors for Mintellect
+        mintellect: {
+          primary: "#3b82f6", // Changed from #6366f1 (Indigo) to #3b82f6 (Blue)
+          secondary: "#60a5fa", // Changed from #8b5cf6 (Purple) to #60a5fa (Light Blue)
+          accent: "#0ea5e9", // Changed from #06b6d4 (Cyan) to #0ea5e9 (Sky Blue)
+          dark: "#0f172a", // Slate 900
+          "dark-accent": "#1e293b", // Slate 800
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -82,60 +75,55 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        fadeIn: {
-          from: { opacity: "0" },
-          to: { opacity: "1" },
-        },
-        fadeInUp: {
-          from: {
-            opacity: "0",
-            transform: "translateY(20px)",
+        "pulse-glow": {
+          "0%, 100%": {
+            boxShadow: "0 0 15px 5px rgba(59, 130, 246, 0.2)",
           },
-          to: {
-            opacity: "1",
-            transform: "translateY(0)",
+          "50%": {
+            boxShadow: "0 0 25px 10px rgba(59, 130, 246, 0.4)",
           },
         },
-        pulse: {
-          "0%, 100%": { opacity: "0.3", transform: "scale(1)" },
-          "50%": { opacity: "0.8", transform: "scale(1.5)" },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
         },
-        gradientFlow: {
+        "gradient-background": {
           "0%": { backgroundPosition: "0% 50%" },
           "50%": { backgroundPosition: "100% 50%" },
           "100%": { backgroundPosition: "0% 50%" },
         },
-        slideInLeft: {
-          from: { transform: "translateX(-20px)", opacity: "0" },
-          to: { transform: "translateX(0)", opacity: "1" },
+        "border-flow": {
+          "0%, 100%": {
+            backgroundPosition: "0% 50%",
+            borderColor: "rgba(59, 130, 246, 0.5)",
+          },
+          "50%": {
+            backgroundPosition: "100% 50%",
+            borderColor: "rgba(96, 165, 250, 0.5)",
+          },
         },
-        slideInRight: {
-          from: { transform: "translateX(20px)", opacity: "0" },
-          to: { transform: "translateX(0)", opacity: "1" },
+        shine: {
+          from: {
+            transform: "translateX(-100%) rotate(45deg)",
+          },
+          to: {
+            transform: "translateX(200%) rotate(45deg)",
+          },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        fadeIn: "fadeIn 0.5s ease-in-out forwards",
-        fadeInUp: "fadeInUp 0.5s ease-out forwards",
-        pulse: "pulse 4s ease-in-out infinite",
-        gradientFlow: "gradientFlow 3s ease infinite",
-        slideInLeft: "slideInLeft 0.5s ease-out forwards",
-        slideInRight: "slideInRight 0.5s ease-out forwards",
-      },
-      backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "button-gradient": "linear-gradient(90deg, #3a6bc4 0%, #6f278e 100%)",
-        "gradient-flow": "linear-gradient(90deg, #3a6bc4, #6f278e, #3a6bc4)",
-      },
-      backgroundSize: {
-        "gradient-flow": "200% 100%",
+        "pulse-glow": "pulse-glow 2s infinite",
+        float: "float 6s ease-in-out infinite",
+        "gradient-background": "gradient-background 15s ease infinite",
+        "border-flow": "border-flow 4s ease infinite",
+        shine: "shine 2s linear infinite",
       },
     },
   },
   plugins: [require("tailwindcss-animate")],
-} satisfies Config
+}
 
 export default config
 
