@@ -24,6 +24,19 @@ export default function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/images/Mintellect_logo.png" type="image/png" />
+        <title>Mintellect - Your AI Learning Platform</title>
+        <meta name="description" content="Mintellect - Your AI Learning Platform" />
+        <meta property="og:title" content="Mintellect - Your AI Learning Platform" />
+        <meta property="og:description" content="Mintellect - Your AI Learning Platform" />
+        <meta property="og:image" content="/images/Mintellect_logo.png" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Mintellect - Your AI Learning Platform" />
+        <meta name="twitter:description" content="Mintellect - Your AI Learning Platform" />
+        <meta name="twitter:image" content="/images/Mintellect_logo.png" />
+      </head>
       <body className={inter.className}>
         <OCConnectWrapper opts={opts} sandboxMode={true}>
           {children}
