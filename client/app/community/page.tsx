@@ -699,8 +699,8 @@ export default function CommunityPage() {
               <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                 Blockchain Research Hub
               </h1>
-              <p className="text-gray-400 max-w-md">
-                Discover verified blockchain research papers with trust scores and on-chain verification
+              <p className="text-gray-400 max-w-md text-sm md:text-base">
+                Discover verified blockchain research papers.
               </p>
             </motion.div>
 

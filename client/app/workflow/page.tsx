@@ -159,8 +159,8 @@ export default function WorkflowPage() {
             <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
               Verification Workflow
             </h1>
-            <p className="text-gray-400 max-w-xl">
-              Step-by-step verification and minting for your research documents, powered by AI and blockchain.
+            <p className="text-gray-400 max-w-xl text-sm md:text-base">
+              Step-by-step verification and minting for your research.
             </p>
           </motion.div>
         </div>
@@ -183,48 +183,47 @@ export default function WorkflowPage() {
 
             {/* Workflow Progress Indicator */}
             <div className="relative mb-16">
-              {/* Progress Bar - Enhanced with gradient and glow effect */}
-              <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-gray-800 rounded-full -z-10 transform -translate-y-1/2 overflow-hidden">
-                <div className="absolute inset-0 bg-opacity-20 bg-white/5"></div>
-              </div>
-
-              {/* Animated Progress Fill */}
+              {/* Progress Bar - Enhanced with gradient and glow effect, aligned with icon centers */}
               <div
-                className="absolute top-1/2 left-0 h-1.5 rounded-full -z-10 transform -translate-y-1/2 transition-all duration-700 ease-in-out"
+                className="absolute z-0"
                 style={{
-                  width: `${(step / (steps.length - 1)) * 100}%`,
-                  background:
-                    "linear-gradient(90deg, rgba(99,102,241,1) 0%, rgba(139,92,246,1) 50%, rgba(6,182,212,1) 100%)",
-                  boxShadow: "0 0 10px rgba(99,102,241,0.5), 0 0 20px rgba(99,102,241,0.3)",
+                  top: '24px',
+                  left: '24px', // half icon width (w-12 = 48px, so 24px)
+                  right: '24px', // half icon width
+                  height: '0',
                 }}
               >
-                {/* Animated pulse effect */}
-                <div className="absolute right-0 top-1/2 w-4 h-4 -mt-2 -mr-2 bg-mintellect-primary rounded-full">
-                  <div className="absolute inset-0 rounded-full animate-ping bg-mintellect-primary opacity-75"></div>
+                <div className="relative h-1.5 bg-gray-800 rounded-full z-0 overflow-hidden">
+                  <div className="absolute inset-0 bg-opacity-20 bg-white/5"></div>
+                  {/* Animated Progress Fill */}
+                  <div
+                    className="absolute top-0 left-0 h-1.5 rounded-full transition-all duration-700 ease-in-out"
+                    style={{
+                      width: `${(step / (steps.length - 1)) * 100}%`,
+                      maxWidth: '100%',
+                      background:
+                        "linear-gradient(90deg, rgba(99,102,241,1) 0%, rgba(139,92,246,1) 50%, rgba(6,182,212,1) 100%)",
+                      boxShadow: "0 0 10px rgba(99,102,241,0.5), 0 0 20px rgba(99,102,241,0.3)",
+                    }}
+                  >
+                    {/* Animated pulse effect */}
+                    <div className="absolute right-0 top-1/2 w-4 h-4 -mt-2 -mr-2 bg-mintellect-primary rounded-full">
+                      <div className="absolute inset-0 rounded-full animate-ping bg-mintellect-primary opacity-75"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Step Indicators with connecting lines */}
+              {/* Step Indicators (no extra connecting lines) */}
               <div className="flex justify-between relative">
                 {steps.map((s, i) => (
                   <div key={i} className="flex flex-col items-center">
-                    {/* Connecting lines between steps */}
-                    {i > 0 && (
-                      <div
-                        className={`absolute h-0.5 top-6 -z-10 transition-colors duration-500 ${i <= step ? "bg-gradient-to-r from-mintellect-primary to-mintellect-accent" : "bg-gray-700"}`}
-                        style={{
-                          left: `${(i - 1) * (100 / (steps.length - 1))}%`,
-                          width: `${100 / (steps.length - 1)}%`,
-                        }}
-                      ></div>
-                    )}
-
                     {/* Step circle with icon */}
                     <motion.div
-                      initial={{ scale: 0.8, opacity: 0.5 }}
+                      initial={{ scale: 0.8 }}
                       animate={{
                         scale: i <= step ? 1 : 0.8,
-                        opacity: i <= step ? 1 : 0.5,
+                        opacity: 1,
                       }}
                       className={`relative w-12 h-12 rounded-full flex items-center justify-center z-10 
                         transition-all duration-500
@@ -236,7 +235,7 @@ export default function WorkflowPage() {
                               : "bg-gray-800 text-gray-400"
                         }`}
                     >
-                      {i < step ? <Check className="h-6 w-6" /> : <s.icon className="h-6 w-6" />}
+                      {i < step ? <Check className="h-6 w-6 opacity-100" /> : <s.icon className="h-6 w-6 opacity-100" />}
 
                       {/* Pulse animation for current step */}
                       {i === step && (

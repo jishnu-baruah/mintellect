@@ -39,8 +39,8 @@ export default function DocumentsPage() {
           >
             Documents
           </motion.h1>
-          <p className="text-gray-400 max-w-md">
-            Your verified research documents, all in one place.
+          <p className="text-gray-400 max-w-md text-sm md:text-base">
+            Your verified research documents.
           </p>
         </div>
       </header>

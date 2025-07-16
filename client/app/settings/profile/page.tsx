@@ -43,6 +43,12 @@ export default function ProfileSettings() {
       <div className="flex justify-end">
         <RippleButton>Save</RippleButton>
       </div>
+      <div className="flex justify-end mt-12">
+        <a href="/settings/security" className="flex items-center gap-2 px-4 py-1.5 border border-gray-700 rounded-full text-gray-200 hover:bg-gray-800 transition font-normal text-sm">
+          <span>Security</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+        </a>
+      </div>
     </GlassCard>
   )
 } 

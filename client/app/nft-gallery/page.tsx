@@ -111,8 +111,8 @@ export default function NFTGalleryPage() {
           >
             NFT Certificate Gallery
           </motion.h1>
-          <p className="text-gray-400 max-w-md">
-            View and manage your blockchain-verified academic certificates. Search, filter, and explore your NFT credentials.
+          <p className="text-gray-400 max-w-md text-sm md:text-base">
+            Manage your blockchain-verified certificates.
           </p>
         </div>
       </header>

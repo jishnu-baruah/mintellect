@@ -99,8 +99,8 @@ export default function Dashboard() {
             >
               Dashboard
             </motion.h1>
-            <p className="text-gray-400 max-w-md">
-              Your personal web3 research hub: track your activity, mint new research, and manage your academic credentials.
+            <p className="text-gray-400 max-w-md text-sm md:text-base">
+              Your web3 research hub.
             </p>
           </div>
         </div>

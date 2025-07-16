@@ -156,8 +156,8 @@ export default function AnalyticsPage() {
           >
             Analytics Overview
           </motion.h1>
-          <p className="text-gray-400 max-w-md">
-            Get a quick, visual summary of your research activity and trust scores on Mintellect. All data is live from the blockchain.
+          <p className="text-gray-400 max-w-md text-sm md:text-base">
+            Visual summary of your research activity.
           </p>
         </div>
       </header>

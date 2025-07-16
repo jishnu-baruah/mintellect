@@ -4,9 +4,58 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { FileText, Shield, BarChart2, Award, Users, Settings, ChevronLeft, ChevronRight, User, Lock, Bell, CreditCard, Wallet } from "lucide-react"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { AnimatedLogo } from "./ui/animated-logo"
 import { useWallet } from "./wallet-provider"
+import ReactDOM from "react-dom";
+
+// Minimal portal-based tooltip for sidebar
+function SidebarTooltip({ children, label }: { children: React.ReactNode, label: string }) {
+  const [show, setShow] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = () => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setCoords({
+        top: rect.top + rect.height / 2,
+        left: rect.right + 8,
+      });
+      setShow(true);
+    }
+  };
+  const handleMouseLeave = () => setShow(false);
+
+  return (
+    <>
+      <div
+        ref={ref}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="relative flex items-center justify-center"
+      >
+        {children}
+      </div>
+      {show && coords && ReactDOM.createPortal(
+        <span
+          style={{
+            position: "fixed",
+            top: coords.top,
+            left: coords.left,
+            transform: "translateY(-50%)",
+            zIndex: 9999,
+            pointerEvents: "none",
+          }}
+          className="px-2 py-1 rounded bg-black text-white text-xs shadow-lg whitespace-nowrap animate-fadein"
+        >
+          {label}
+        </span>,
+        document.body
+      )}
+    </>
+  );
+}
 
 export function DashboardSidebar({ className }: { className?: string }) {
   const pathname = usePathname()
@@ -51,136 +100,228 @@ export function DashboardSidebar({ className }: { className?: string }) {
   // New: handle nav/settings click with logic
   const handleNavClick = (targetHref: string) => {
     if (collapsed) {
-      setCollapsed(false);
+      if (pathname === targetHref) {
+        setCollapsed(false); // Only expand if clicking the active page
+      }
+      // else: stay collapsed
     } else {
       if (pathname === targetHref) {
-        setCollapsed(true);
+        setCollapsed(true); // Collapse if clicking the active page
       }
       // else: stay expanded
     }
   };
 
   return (
-    <aside className={cn(`flex flex-col bg-black border-2 border-blue-900/40 rounded-3xl m-3 shadow-lg p-3 h-[95vh] shrink-0 transition-all duration-300 overflow-hidden ${collapsed ? 'w-20' : 'w-64'}` , className)}>
-      {/* Logo and Title (row when expanded, centered when collapsed) */}
-      <div className={cn("flex items-center mb-8 px-2 relative", collapsed ? "justify-center" : "justify-start gap-3")}> 
-        <div className={cn("flex items-center justify-center", collapsed ? "w-full" : "")}> 
-          <AnimatedLogo size={collapsed ? "large" : "small"} />
+    <div className="relative flex">
+      <aside
+        className={cn(
+          `relative flex flex-col h-screen bg-black rounded-3xl shadow-lg shrink-0 overflow-visible pl-0`,
+          collapsed ? 'w-20' : 'w-64',
+          'transition-[width] duration-300'
+        )}
+      >
+        {/* Logo and Title (row when expanded, centered when collapsed) */}
+        <div className="flex flex-row items-center mb-8 min-w-0 h-20 w-full overflow-hidden">
+          <div className="flex items-center justify-center w-20 h-20 flex-shrink-0 ml-0">
+            <AnimatedLogo />
+          </div>
+          <span
+            className={cn(
+              "text-2xl font-bold text-white tracking-tight flex items-center transition-all duration-300 whitespace-nowrap",
+              collapsed
+                ? "opacity-0 pointer-events-none select-none"
+                : "opacity-100 ml-1",
+            )}
+            style={{ marginTop: '-10px' }}
+          >
+            Mintellect
+          </span>
         </div>
-        {!collapsed && <span className="text-2xl font-bold text-white tracking-tight flex items-center">Mintellect</span>}
-      </div>
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1">
-        {navItems.map((item, idx) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => handleNavClick(item.href)}
-            className={cn(
-              `group flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 hover:bg-[#23262F] ${collapsed ? 'justify-center' : ''}`,
-              pathname === item.href ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300",
-            )}
-          >
-            <item.icon className={cn("h-5 w-5", [
-              "text-blue-400",
-              "text-green-400",
-              "text-yellow-400",
-              "text-purple-400",
-              "text-pink-400",
-              "text-gray-400"
-            ][idx % 6])} />
-            {!collapsed && <span className="truncate">{item.label}</span>}
-          </Link>
-        ))}
-        {/* Settings section with sub-menu */}
-        <div className="relative">
-          <button
-            className={cn(
-              "group flex items-center gap-3 px-3 py-2 rounded-xl w-full transition-all duration-200 hover:bg-[#23262F] focus:outline-none",
-              pathname.startsWith("/settings") ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300",
-              collapsed ? "justify-center" : ""
-            )}
-            onClick={() => {
-              if (collapsed) {
-                setCollapsed(false);
-                setSettingsOpen(true);
-              } else {
-                // If already open and on a /settings route, collapse sidebar
-                if (settingsOpen && pathname.startsWith("/settings")) {
-                  setCollapsed(true);
-                } else {
-                  setSettingsOpen((open) => !open);
-                }
-              }
-            }}
-            aria-expanded={settingsOpen}
-            aria-controls="settings-submenu"
-          >
-            <Settings className="h-5 w-5 text-gray-400 group-hover:text-mintellect-primary" />
-            {!collapsed && <span className="truncate">Settings</span>}
-            {!collapsed && (
-              <ChevronRight
-                className={cn(
-                  "h-4 w-4 ml-auto transition-transform",
-                  settingsOpen ? "rotate-90" : "rotate-0"
+        {/* Navigation - scrollable, but bottom section is outside */}
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+          <nav className="space-y-1">
+            {navItems.map((item, idx) => (
+              <>
+                {collapsed ? (
+                  <SidebarTooltip label={item.label} key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => handleNavClick(item.href)}
+                      className={cn(
+                        `group flex items-center py-2 rounded-xl transition-all duration-200 hover:bg-[#23262F] items-center w-full justify-center px-0 gap-0`,
+                        pathname === item.href ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300",
+                      )}
+                    >
+                      <item.icon className={cn("h-5 w-5", [
+                        "text-blue-400",
+                        "text-green-400",
+                        "text-yellow-400",
+                        "text-purple-400",
+                        "text-pink-400",
+                        "text-gray-400"
+                      ][idx % 6])} />
+                      <span
+                        className={cn(
+                          "whitespace-nowrap overflow-hidden transition-all duration-300",
+                          "max-w-0 opacity-0 ml-0"
+                        )}
+                        style={{ display: 'inline-block', verticalAlign: 'middle' }}
+                      >
+                        {item.label}
+                      </span>
+                    </Link>
+                  </SidebarTooltip>
+                ) : (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => handleNavClick(item.href)}
+                    className={cn(
+                      `group flex items-center py-2 rounded-xl transition-all duration-200 hover:bg-[#23262F] items-center w-full justify-start px-3 gap-3`,
+                      pathname === item.href ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300",
+                    )}
+                  >
+                    <item.icon className={cn("h-5 w-5", [
+                      "text-blue-400",
+                      "text-green-400",
+                      "text-yellow-400",
+                      "text-purple-400",
+                      "text-pink-400",
+                      "text-gray-400"
+                    ][idx % 6])} />
+                    <span
+                      className={cn(
+                        "whitespace-nowrap overflow-hidden transition-all duration-300",
+                        "max-w-[160px] opacity-100 ml-2"
+                      )}
+                      style={{ display: 'inline-block', verticalAlign: 'middle' }}
+                    >
+                      {item.label}
+                    </span>
+                  </Link>
                 )}
-              />
-            )}
-          </button>
-          {/* Sub-menu (expanded sidebar) */}
-          {!collapsed && settingsOpen && (
-            <div id="settings-submenu" className="ml-8 mt-1 space-y-1">
-              <Link href="/settings/profile" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/profile" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><User className="h-4 w-4" />Profile</Link>
-              <Link href="/settings/security" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/security" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Lock className="h-4 w-4" />Security</Link>
-              <Link href="/settings/notifications" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/notifications" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Bell className="h-4 w-4" />Notifications</Link>
-              <Link href="/settings/privacy" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/privacy" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Shield className="h-4 w-4" />Privacy</Link>
-              <Link href="/settings/billing" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/billing" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><CreditCard className="h-4 w-4" />Billing</Link>
+              </>
+            ))}
+            {/* Settings section with sub-menu */}
+            <div className="relative">
+              {collapsed ? (
+                <SidebarTooltip label="Settings">
+                  <button
+                    className={cn(
+                      `group flex items-center py-2 rounded-xl w-full transition-all duration-200 hover:bg-[#23262F] focus:outline-none justify-center px-0 gap-0`,
+                      pathname.startsWith("/settings") ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                    )}
+                    onClick={() => {
+                      setCollapsed(false);
+                      setSettingsOpen(true);
+                      if (!pathname.startsWith("/settings")) {
+                        window.location.href = "/settings/profile";
+                      }
+                    }}
+                    aria-expanded={settingsOpen}
+                    aria-controls="settings-submenu"
+                  >
+                    <Settings className="h-5 w-5 text-gray-400 group-hover:text-mintellect-primary" />
+                  </button>
+                </SidebarTooltip>
+              ) : (
+                <button
+                  className={cn(
+                    `group flex items-center py-2 rounded-xl w-full transition-all duration-200 hover:bg-[#23262F] focus:outline-none justify-start px-3 gap-3`,
+                    pathname.startsWith("/settings") ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}
+                  onClick={() => {
+                    if (pathname.startsWith("/settings")) {
+                      setCollapsed(true);
+                    } else {
+                      setSettingsOpen(true);
+                      window.location.href = "/settings/profile";
+                    }
+                  }}
+                  aria-expanded={settingsOpen}
+                  aria-controls="settings-submenu"
+                >
+                  <Settings className="h-5 w-5 text-gray-400 group-hover:text-mintellect-primary" />
+                  <span
+                    className={cn(
+                      "whitespace-nowrap overflow-hidden transition-all duration-300",
+                      "max-w-[160px] opacity-100 ml-2"
+                    )}
+                    style={{ display: 'inline-block', verticalAlign: 'middle' }}
+                  >
+                    Settings
+                  </span>
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 ml-auto transition-transform",
+                      settingsOpen ? "rotate-90" : "rotate-0"
+                    )}
+                  />
+                </button>
+              )}
+              {/* Sub-menu (expanded sidebar) */}
+              {!collapsed && settingsOpen && (
+                <div id="settings-submenu" className="ml-8 mt-1 space-y-1">
+                  <Link href="/settings/profile" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/profile" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><User className="h-4 w-4" />Profile</Link>
+                  <Link href="/settings/security" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/security" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Lock className="h-4 w-4" />Security</Link>
+                  <Link href="/settings/notifications" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/notifications" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Bell className="h-4 w-4" />Notifications</Link>
+                  <Link href="/settings/privacy" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/privacy" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Shield className="h-4 w-4" />Privacy</Link>
+                  <Link href="/settings/billing" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/billing" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><CreditCard className="h-4 w-4" />Billing</Link>
+                </div>
+              )}
+              {/* Sub-menu (collapsed sidebar) as floating menu on hover/focus */}
+              {collapsed && settingsOpen && (
+                <div className="absolute left-full top-0 mt-0 ml-2 w-48 bg-black border rounded-xl shadow-lg z-50 p-2">
+                  <Link href="/settings/profile" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/profile" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><User className="h-4 w-4" />Profile</Link>
+                  <Link href="/settings/security" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/security" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Lock className="h-4 w-4" />Security</Link>
+                  <Link href="/settings/notifications" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/notifications" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Bell className="h-4 w-4" />Notifications</Link>
+                  <Link href="/settings/privacy" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/privacy" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Shield className="h-4 w-4" />Privacy</Link>
+                  <Link href="/settings/billing" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/billing" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><CreditCard className="h-4 w-4" />Billing</Link>
+                </div>
+              )}
             </div>
-          )}
-          {/* Sub-menu (collapsed sidebar) as floating menu on hover/focus */}
-          {collapsed && settingsOpen && (
-            <div className="absolute left-full top-0 mt-0 ml-2 w-48 bg-black border border-blue-900 rounded-xl shadow-lg z-50 p-2">
-              <Link href="/settings/profile" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/profile" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><User className="h-4 w-4" />Profile</Link>
-              <Link href="/settings/security" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/security" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Lock className="h-4 w-4" />Security</Link>
-              <Link href="/settings/notifications" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/notifications" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Bell className="h-4 w-4" />Notifications</Link>
-              <Link href="/settings/privacy" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/privacy" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Shield className="h-4 w-4" />Privacy</Link>
-              <Link href="/settings/billing" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/billing" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><CreditCard className="h-4 w-4" />Billing</Link>
-            </div>
-          )}
+          </nav>
         </div>
-      </nav>
-      {/* Bottom section: wallet/socials */}
-      <div className="mt-auto flex flex-col gap-3 items-center pb-2 min-w-0">
+      </aside>
+      {/* Right divider, always visible, sibling to sidebar */}
+      <div className="absolute top-3 bottom-3 left-full w-px bg-gray-700/40 z-30 transition-all duration-300" />
+      {/* Bottom section absolutely positioned and outside the sidebar */}
+      <div className={cn(
+        `absolute left-0 bottom-0 flex flex-col gap-3 items-center min-w-0 mb-4`,
+        collapsed ? 'w-20' : 'w-64',
+        'transition-[width] duration-300'
+      )}>
         {/* Wallet Connect Button */}
         <button
           onClick={walletConnected ? disconnectWallet : connectWallet}
@@ -210,6 +351,6 @@ export function DashboardSidebar({ className }: { className?: string }) {
           </a>
         </div>
       </div>
-    </aside>
+    </div>
   )
 }
