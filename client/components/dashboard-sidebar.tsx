@@ -205,7 +205,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
     <div className="relative flex">
       <aside
         className={cn(
-          `relative flex flex-col h-screen bg-black rounded-3xl shadow-lg shrink-0 overflow-visible pl-0`,
+          `relative flex flex-col h-screen bg-black rounded-3xl shadow-lg shrink-0 overflow-x-hidden overflow-y-visible pl-0`,
           collapsedFinal ? 'w-20' : 'w-64',
           'transition-[width] duration-300'
         )}
@@ -228,7 +228,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
           </span>
         </div>
         {/* Navigation - scrollable, but bottom section is outside */}
-        <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1">
           <nav className="space-y-1">
             {navItems.map((item, idx) => (
               <React.Fragment key={item.href}>
