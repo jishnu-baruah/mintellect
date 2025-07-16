@@ -88,7 +88,7 @@ export default function Dashboard() {
       </div>
 
       <header className="relative z-10 border-b border-gray-800 py-8 bg-black">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center gap-6">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row items-start gap-6">
           {/* Removed <AnimatedLogo /> */}
           <div>
             <motion.h1

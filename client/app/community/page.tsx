@@ -36,7 +36,12 @@ import contractABI from "@/lib/MintellectNFT_ABI.json"
 const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004"
 
 // Paper card component
-const PaperCard = ({ paper, onPurchase, isExpanded, onToggleExpand }) => {
+const PaperCard = ({ paper, onPurchase, isExpanded, onToggleExpand }: {
+  paper: any;
+  onPurchase: (paper: any) => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+}) => {
   const { isConnected } = useWallet()
   const isPremium = paper.isPremium
   const isVerified = paper.verified
@@ -47,14 +52,14 @@ const PaperCard = ({ paper, onPurchase, isExpanded, onToggleExpand }) => {
     day: "numeric",
   })
 
-  const getScoreColor = (score) => {
+  const getScoreColor = (score: number) => {
     if (score >= 90) return "text-green-400"
     if (score >= 80) return "text-blue-400"
     if (score >= 70) return "text-yellow-400"
     return "text-red-400"
   }
 
-  const getScoreBgColor = (score) => {
+  const getScoreBgColor = (score: number) => {
     if (score >= 90) return "bg-green-500"
     if (score >= 80) return "bg-blue-500"
     if (score >= 70) return "bg-yellow-500"
@@ -133,7 +138,7 @@ const PaperCard = ({ paper, onPurchase, isExpanded, onToggleExpand }) => {
 
             {/* Tags */}
             <div className="flex flex-wrap gap-2 mb-4">
-              {paper.tags.slice(0, isExpanded ? paper.tags.length : 3).map((tag) => (
+              {paper.tags.slice(0, isExpanded ? paper.tags.length : 3).map((tag: string) => (
                 <span key={tag} className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full">
                   {tag}
                 </span>
@@ -160,7 +165,7 @@ const PaperCard = ({ paper, onPurchase, isExpanded, onToggleExpand }) => {
                 <span>{paper.citations.toLocaleString()} citations</span>
               </div>
               <div className="flex items-center gap-1">
-                <Award className="h-3 w-3" className={getScoreColor(paper.trustScore)} />
+                <Award className={getScoreColor(paper.trustScore)} />
                 <span className={getScoreColor(paper.trustScore)}>{paper.trustScore}% trust</span>
               </div>
             </div>
@@ -298,7 +303,10 @@ const PaperCard = ({ paper, onPurchase, isExpanded, onToggleExpand }) => {
 }
 
 // Featured paper component
-const FeaturedPaper = ({ paper, onPurchase }) => {
+const FeaturedPaper = ({ paper, onPurchase }: {
+  paper: any;
+  onPurchase: (paper: any) => void;
+}) => {
   const { isConnected } = useWallet()
   const isPremium = paper.isPremium
 
@@ -349,7 +357,7 @@ const FeaturedPaper = ({ paper, onPurchase }) => {
             <p className="text-sm md:text-base text-gray-400 mb-6">{paper.abstract}</p>
 
             <div className="flex flex-wrap gap-2 mb-6">
-              {paper.tags.map((tag) => (
+              {paper.tags.map((tag: string) => (
                 <span key={tag} className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full">
                   {tag}
                 </span>
@@ -411,7 +419,11 @@ const EmptyPapers = () => (
 )
 
 // Purchase modal component
-const PurchaseModal = ({ paper, onClose, onConfirm }) => {
+const PurchaseModal = ({ paper, onClose, onConfirm }: {
+  paper: any;
+  onClose: () => void;
+  onConfirm: (paper: any) => void;
+}) => {
   const { isConnected, walletAddress } = useWallet()
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -621,7 +633,7 @@ export default function CommunityPage() {
   }
 
   // Toggle paper expanded state
-  const togglePaperExpanded = (paperId) => {
+  const togglePaperExpanded = (paperId: string) => {
     setExpandedPapers((prev) => (prev.includes(paperId) ? prev.filter((id) => id !== paperId) : [...prev, paperId]))
   }
 
@@ -668,13 +680,13 @@ export default function CommunityPage() {
     : null;
 
   // Handle paper purchase
-  const handlePurchase = (paper) => {
+  const handlePurchase = (paper: any) => {
     setSelectedPaper(paper)
     setShowPurchaseModal(true)
   }
 
   // Confirm purchase
-  const confirmPurchase = (paper) => {
+  const confirmPurchase = (paper: any) => {
     // Here you would implement the actual purchase logic
     alert(`Purchase successful! You now have access to "${paper.title}"`)
     setShowPurchaseModal(false)
@@ -728,7 +740,7 @@ export default function CommunityPage() {
         </div>
       </header>
 
-      <main className="container mx-auto py-8 px-4 relative z-10">
+      <main className="container mx-auto py-8 px-4 pb-24 relative z-10">
         {/* Featured paper */}
         {featuredPaper ? (
           <FeaturedPaper paper={featuredPaper} onPurchase={handlePurchase} />
@@ -761,7 +773,7 @@ export default function CommunityPage() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -300 }}
                 transition={{ type: "spring", damping: 25 }}
-                className="fixed inset-0 z-50 md:hidden"
+                className="fixed inset-0 z-50 md:hidden ml-16"
               >
                 <div
                   className="absolute inset-0 bg-black/60 backdrop-blur-sm"

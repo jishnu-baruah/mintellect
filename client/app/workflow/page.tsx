@@ -194,21 +194,21 @@ export default function WorkflowPage() {
                 }}
               >
                 <div className="relative h-1.5 bg-gray-800 rounded-full z-0 overflow-hidden">
-                  <div className="absolute inset-0 bg-opacity-20 bg-white/5"></div>
-                  {/* Animated Progress Fill */}
-                  <div
+                <div className="absolute inset-0 bg-opacity-20 bg-white/5"></div>
+              {/* Animated Progress Fill */}
+              <div
                     className="absolute top-0 left-0 h-1.5 rounded-full transition-all duration-700 ease-in-out"
-                    style={{
-                      width: `${(step / (steps.length - 1)) * 100}%`,
+                style={{
+                  width: `${(step / (steps.length - 1)) * 100}%`,
                       maxWidth: '100%',
-                      background:
-                        "linear-gradient(90deg, rgba(99,102,241,1) 0%, rgba(139,92,246,1) 50%, rgba(6,182,212,1) 100%)",
-                      boxShadow: "0 0 10px rgba(99,102,241,0.5), 0 0 20px rgba(99,102,241,0.3)",
-                    }}
-                  >
-                    {/* Animated pulse effect */}
-                    <div className="absolute right-0 top-1/2 w-4 h-4 -mt-2 -mr-2 bg-mintellect-primary rounded-full">
-                      <div className="absolute inset-0 rounded-full animate-ping bg-mintellect-primary opacity-75"></div>
+                  background:
+                    "linear-gradient(90deg, rgba(99,102,241,1) 0%, rgba(139,92,246,1) 50%, rgba(6,182,212,1) 100%)",
+                  boxShadow: "0 0 10px rgba(99,102,241,0.5), 0 0 20px rgba(99,102,241,0.3)",
+                }}
+              >
+                {/* Animated pulse effect */}
+                <div className="absolute right-0 top-1/2 w-4 h-4 -mt-2 -mr-2 bg-mintellect-primary rounded-full">
+                  <div className="absolute inset-0 rounded-full animate-ping bg-mintellect-primary opacity-75"></div>
                     </div>
                   </div>
                 </div>

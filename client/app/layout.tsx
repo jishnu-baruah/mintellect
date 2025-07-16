@@ -28,8 +28,8 @@ export default function RootLayout({
           <div className="fixed inset-0 z-0 scale-[0.8] origin-top-left w-[125vw] h-[125vh] overflow-auto">
             <WalletProvider>
               <div className="flex h-[125vh] bg-black overflow-hidden">
-                <DashboardSidebar className="hidden md:flex" />
-                <div className="flex-1 flex flex-col overflow-hidden">
+                <DashboardSidebar />
+                <div className="flex-1 flex flex-col overflow-hidden ml-16 md:ml-0">
                   <div className="fixed inset-0 -z-10 pointer-events-none">
                     <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
                     <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-mintellect-primary/5 rounded-full filter blur-[80px]"></div>
