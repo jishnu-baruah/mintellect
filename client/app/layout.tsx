@@ -23,6 +23,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <link rel="icon" href="/images/Mintellect_logo.png" type="image/png" />
+        <title>Mintellect - AI-Powered Academic Integrity Platform</title>
+        <meta name="description" content="Verify, improve, and certify your academic work with Mintellect's AI-powered platform." />
+        <meta property="og:title" content="Mintellect - AI-Powered Academic Integrity Platform" />
+        <meta property="og:description" content="Verify, improve, and certify your academic work with Mintellect's AI-powered platform." />
+        <meta property="og:image" content="/images/Mintellect_logo.png" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Mintellect - AI-Powered Academic Integrity Platform" />
+        <meta name="twitter:description" content="Verify, improve, and certify your academic work with Mintellect's AI-powered platform." />
+        <meta name="twitter:image" content="/images/Mintellect_logo.png" />
+      </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <div className="fixed inset-0 z-0 scale-[0.8] origin-top-left w-[125vw] h-[125vh] overflow-auto">

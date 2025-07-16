@@ -11,7 +11,7 @@ export function AnimatedLogo({ className }: { className?: string }) {
     <div className={`relative ${className}`}>
       <a href="https://mintellect.xyz" target="_blank" rel="noopener noreferrer" className="block relative z-10">
         <Image
-          src="/images/Mintellect_logo__1_-removebg-preview (1).png"
+          src="/images/Mintellect_logo.png"
           alt="Mintellect Logo"
           width={logoSize}
           height={logoSize}

@@ -222,7 +222,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
                 ? "opacity-0 pointer-events-none select-none"
                 : "opacity-100 ml-1",
             )}
-            style={{ marginTop: '-10px' }}
+            style={{ marginTop: '2px' }}
           >
             Mintellect
           </span>
