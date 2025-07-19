@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, CheckCircle, AlertCircle, Loader2, FileArchive } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -29,13 +29,26 @@ interface UploadedFile {
 export function FileUpload({
   onFilesSelected,
   onAnalysisComplete,
-  maxFiles = 5,
-  acceptedFileTypes = [".zip"],
+  maxFiles = 1,
+  acceptedFileTypes = [".doc", ".docx", ".txt", ".tex"],
 }: FileUploadProps) {
+  console.log('FileUpload: render, onAnalysisComplete:', onAnalysisComplete, 'acceptedFileTypes:', acceptedFileTypes);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [isDragging, setIsDragging] = useState<boolean>(false)
   const [analyzing, setAnalyzing] = useState<boolean>(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    // If all files are complete and at least one file is uploaded, trigger analysis automatically
+    if (
+      uploadedFiles.length > 0 &&
+      uploadedFiles.every((f) => f.status === 'complete') &&
+      onAnalysisComplete
+    ) {
+      console.log('FileUpload: onAnalysisComplete triggered');
+      onAnalysisComplete(uploadedFiles.map((f) => f.file));
+    }
+  }, [uploadedFiles, onAnalysisComplete]);
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault()
@@ -74,20 +87,21 @@ export function FileUpload({
   }
 
   const handleFiles = (files: File[]) => {
+    console.log('FileUpload: handleFiles called with', files);
     // Filter files by accepted types
     const validFiles = files.filter((file) => {
       const fileExtension = `.${file.name.split(".").pop()?.toLowerCase()}`
       return acceptedFileTypes.includes(fileExtension)
     })
 
-    // Check if adding these files would exceed the max
+    // Only allow one file per submission
     if (uploadedFiles.length + validFiles.length > maxFiles) {
-      alert(`You can only upload a maximum of ${maxFiles} files.`)
+      alert(`You can only upload one file per submission.`)
       return
     }
 
     // Add files to state with initial status
-    const newFiles = validFiles.map((file) => ({
+    const newFiles = validFiles.slice(0, 1).map((file) => ({
       file,
       id: Math.random().toString(36).substring(2, 9),
       status: "uploading" as FileStatus,
@@ -95,7 +109,8 @@ export function FileUpload({
     }))
 
     setUploadedFiles((prev) => [...prev, ...newFiles])
-    onFilesSelected(validFiles)
+    onFilesSelected(newFiles.map(f => f.file))
+    console.log('FileUpload: onFilesSelected called');
 
     // Simulate file upload and processing
     newFiles.forEach((fileObj) => {
@@ -114,6 +129,7 @@ export function FileUpload({
             // When upload completes, change to processing
             if (newProgress === 100 && f.status === "uploading") {
               clearInterval(uploadInterval)
+              console.log('FileUpload: Upload complete for', f.file.name)
               simulateProcessing(fileId)
               return { ...f, progress: newProgress, status: "processing" }
             }
@@ -134,6 +150,7 @@ export function FileUpload({
           if (f.id === fileId) {
             // 90% chance of success, 10% chance of error for demo purposes
             const success = Math.random() > 0.1
+            console.log('FileUpload: Processing complete for', f.file.name, 'Success:', success)
             return {
               ...f,
               status: success ? "complete" : "error",
@@ -157,7 +174,7 @@ export function FileUpload({
   return (
     <div className="w-full">
       <GlassCard className="p-6">
-        <h2 className="text-xl font-bold mb-6">Upload LaTeX Files</h2>
+        <h2 className="text-xl font-bold mb-6">Upload Document Files</h2>
 
         <div
           className={cn(
@@ -177,7 +194,7 @@ export function FileUpload({
             >
               <FileArchive className="h-10 w-10 md:h-12 md:w-12 text-mintellect-primary" />
             </motion.div>
-            <h3 className="text-lg font-semibold mb-2">{isDragging ? "Drop files here" : "Drag & Drop LaTeX .zip"}</h3>
+            <h3 className="text-lg font-semibold mb-2">{isDragging ? "Drop files here" : "Drag & Drop .txt or .docx"}</h3>
             <p className="text-gray-400 mb-4">
               or{" "}
               <button className="text-mintellect-primary hover:underline" onClick={openFileDialog}>
@@ -185,7 +202,9 @@ export function FileUpload({
               </button>
             </p>
             <div className="flex items-center text-xs text-gray-500">
-              <span className="px-2 py-1 bg-gray-800 rounded-full">.zip only</span>
+              <span className="px-2 py-1 bg-gray-800 rounded-full">.txt</span>
+              <span className="mx-2">•</span>
+              <span className="px-2 py-1 bg-gray-800 rounded-full">.docx</span>
               <span className="mx-2">•</span>
               <span className="px-2 py-1 bg-gray-800 rounded-full">Max 50MB</span>
             </div>
@@ -193,7 +212,7 @@ export function FileUpload({
               ref={fileInputRef}
               type="file"
               multiple
-              accept={acceptedFileTypes.join(",")}
+              accept={[".txt", ".docx"].join(",")}
               onChange={handleFileInputChange}
               className="hidden"
             />
@@ -280,29 +299,7 @@ export function FileUpload({
 
             {uploadedFiles.some((f) => f.status === "complete") && (
               <div className="mt-6">
-                <RippleButton
-                  className="w-full"
-                  onClick={() => {
-                    setAnalyzing(true)
-                    // Simulate analysis completion
-                    setTimeout(() => {
-                      setAnalyzing(false)
-                      // Call the onAnalysisComplete prop
-                      if (onAnalysisComplete)
-                        onAnalysisComplete(uploadedFiles.filter((f) => f.status === "complete").map((f) => f.file))
-                    }, 2000)
-                  }}
-                  disabled={analyzing}
-                >
-                  {analyzing ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                      <span>Analyzing...</span>
-                    </div>
-                  ) : (
-                    "Analyze Files"
-                  )}
-                </RippleButton>
+                {/* Analyze Files button removed: analysis is now automatic */}
               </div>
             )}
           </div>
@@ -312,19 +309,11 @@ export function FileUpload({
           <div className="flex flex-wrap gap-3 justify-center">
             <div className="flex items-center gap-1 text-xs text-gray-400 px-2 py-1 bg-gray-800 rounded-full">
               <CheckCircle className="h-3 w-3 text-green-400" />
-              <span>.tex files</span>
+              <span>.txt files</span>
             </div>
             <div className="flex items-center gap-1 text-xs text-gray-400 px-2 py-1 bg-gray-800 rounded-full">
               <CheckCircle className="h-3 w-3 text-green-400" />
-              <span>.bib files</span>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-gray-400 px-2 py-1 bg-gray-800 rounded-full">
-              <CheckCircle className="h-3 w-3 text-green-400" />
-              <span>style files</span>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-gray-400 px-2 py-1 bg-gray-800 rounded-full">
-              <CheckCircle className="h-3 w-3 text-green-400" />
-              <span>images</span>
+              <span>.docx files</span>
             </div>
           </div>
         </div>

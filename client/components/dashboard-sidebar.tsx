@@ -10,6 +10,7 @@ import { useWallet } from "./wallet-provider"
 import ReactDOM from "react-dom";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import React from "react";
+import { useRouter } from "next/navigation"
 
 // Minimal portal-based tooltip for sidebar
 function SidebarTooltip({ children, label }: { children: React.ReactNode, label: string }) {
@@ -67,6 +68,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
   const [settingsOpen, setSettingsOpen] = useState(pathname.startsWith("/settings"))
   const { walletConnected, connectWallet, disconnectWallet } = useWallet()
   const [mobileOpen, setMobileOpen] = useState(false);
+  const router = useRouter();
 
   // Expand sidebar if not mobile on mount
   useEffect(() => {
@@ -164,7 +166,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
             onClick={() => {
               setSettingsOpen(true);
               if (!pathname.startsWith("/settings")) {
-                window.location.href = "/settings/profile";
+                router.push("/settings/profile");
               }
             }}
             className={cn(
@@ -190,7 +192,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
           </button>
           <div className="flex flex-col items-center gap-2 mt-2">
             <a href="https://t.me/mintellect_community" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-10 h-10 rounded-xl hover:bg-[#23262F] transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={{ transform: 'translate(1px, 4px)' }}><path d="M21.05 2.927a2.25 2.25 0 0 0-2.37-.37L3.36 9.37c-1.49.522-1.471 1.27-.254 1.611l4.624 1.444 10.74-6.77c.505-.327.968-.146.588.181l-8.2 7.01 3.36 2.45 2.676-2.56 5.547 4.047c1.016.561 1.74.266 1.992-.941l3.613-16.84c.33-1.527-.553-2.127-1.54-1.792z" stroke="currentColor" fill="none"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: 'translate(1px, 4px)' }}><path d="M21.05 2.927a2.25 2.25 0 0 0-2.37-.37L3.36 9.37c-1.49.522-1.471 1.27-.254 1.611l4.624 1.444 10.74-6.77c.505-.327.968-.146.588.181l-8.2 7.01 3.36 2.45 2.676-2.56 5.547 4.047c1.016.561 1.74.266 1.992-.941l3.613-16.84c.33-1.527-.553-2.127-1.54-1.792z" stroke="currentColor" fill="none"/></svg>
             </a>
             <a href="https://x.com/_Mintellect_" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-10 h-10 rounded-xl hover:bg-[#23262F] transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
@@ -306,7 +308,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
                 }
                 setSettingsOpen(true);
                 if (!pathname.startsWith("/settings")) {
-                  window.location.href = "/settings/profile";
+                  router.push("/settings/profile");
               }
             }}
             aria-expanded={settingsOpen}
@@ -326,7 +328,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
                       setCollapsed(true);
                     } else {
                       setSettingsOpen(true);
-                      window.location.href = "/settings/profile";
+                      router.push("/settings/profile");
                     }
                   }}
                   aria-expanded={settingsOpen}

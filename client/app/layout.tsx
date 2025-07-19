@@ -8,6 +8,7 @@ import { WalletProvider } from "@/components/wallet-provider"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { usePathname } from "next/navigation"
 import { AnimatedLogo } from "@/components/ui/animated-logo"
+import { ProfileGate } from "@/components/profile-gate"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -26,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/images/Mintellect_logo.png" type="image/png" />
         <title>Mintellect - AI-Powered Academic Integrity Platform</title>
@@ -40,7 +41,7 @@ export default function RootLayout({
         <meta name="twitter:description" content="Verify, improve, and certify your academic work with Mintellect's AI-powered platform." />
         <meta name="twitter:image" content="/images/Mintellect_logo.png" />
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         {MAINTENANCE_MODE ? (
           <div className="min-h-screen flex flex-col items-center justify-center bg-black text-foreground text-center px-4">
             <div className="mb-4 flex flex-col items-center">
@@ -73,7 +74,9 @@ export default function RootLayout({
                       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-mintellect-primary/5 rounded-full filter blur-[80px]"></div>
                       <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-mintellect-secondary/5 rounded-full filter blur-[80px]"></div>
                     </div>
-                    <main className="flex-1 overflow-y-auto hide-scrollbar">{children}</main>
+                    <main className="flex-1 overflow-y-auto hide-scrollbar">
+                      <ProfileGate>{children}</ProfileGate>
+                    </main>
                   </div>
                 </div>
               </WalletProvider>

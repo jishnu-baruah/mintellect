@@ -156,6 +156,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
         console.log("Current accounts:", accounts)
 
+
         // If no accounts, request access
         if (!accounts || accounts.length === 0) {
           console.log("Requesting account access...")
@@ -172,9 +173,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
           setWalletAddress(requestedAccounts[0])
           setWalletConnected(true)
+          // Set wallet address in localStorage
+          if (typeof window !== "undefined") {
+            localStorage.setItem("wallet", requestedAccounts[0]);
+          }
         } else {
           setWalletAddress(accounts[0])
           setWalletConnected(true)
+          // Set wallet address in localStorage
+          if (typeof window !== "undefined") {
+            localStorage.setItem("wallet", accounts[0]);
+          }
         }
 
         // Initialize provider if not already done
@@ -210,6 +219,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setWalletConnected(false)
     setWalletAddress("")
     setError(null)
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("wallet");
+    }
     if (window.ethereum?.removeAllListeners) {
       window.ethereum.removeAllListeners()
     }

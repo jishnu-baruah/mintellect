@@ -31,9 +31,9 @@ interface AIDetails {
 }
 
 interface TrustScoreRecommendation {
-  area: string
-  issue: string
-  action: string
+  area?: string
+  issue?: string
+  action?: string
 }
 
 interface TrustScoreData {
@@ -45,7 +45,7 @@ interface TrustScoreData {
       details: AIDetails
     }
   }
-  recommendations: TrustScoreRecommendation[]
+  recommendations: (TrustScoreRecommendation | string)[]
 }
 
 export default function TrustScorePage() {
@@ -71,16 +71,17 @@ export default function TrustScorePage() {
         throw new Error("Missing required data. Please complete the plagiarism check first.")
       }
 
-      // Use environment variable for API URL
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ""
-      const response = await fetch(`${apiUrl}/api/trust-score`, {
+      // Use server-side trust score API with Gemini 2.5 Flash
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const response = await fetch(`${apiUrl}/api/trust-score/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          filePath,
+          textContent: 'Sample academic document content for trust score analysis.',
           plagiarismResults: JSON.parse(plagiarismResults),
+          fileId: 'trust-score-analysis',
         }),
       })
 
@@ -382,13 +383,19 @@ export default function TrustScorePage() {
                             <div className="flex items-start gap-3">
                               <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5" />
                               <div>
-                                <h4 className="font-medium">{recommendation.area}</h4>
-                                <p className="text-sm mt-1">
-                                  <strong>Issue:</strong> {recommendation.issue}
-                                </p>
-                                <p className="text-sm mt-1">
-                                  <strong>Action:</strong> {recommendation.action}
-                                </p>
+                                {typeof recommendation === 'string' ? (
+                                  <p className="text-sm">{recommendation}</p>
+                                ) : (
+                                  <>
+                                    <h4 className="font-medium">{recommendation.area}</h4>
+                                    <p className="text-sm mt-1">
+                                      <strong>Issue:</strong> {recommendation.issue}
+                                    </p>
+                                    <p className="text-sm mt-1">
+                                      <strong>Action:</strong> {recommendation.action}
+                                    </p>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>

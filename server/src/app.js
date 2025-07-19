@@ -1,65 +1,57 @@
-import express from "express"
-import cors from "cors"
-import helmet from "helmet"
-import morgan from "morgan"
-import { fileURLToPath } from "url"
-import { dirname, join } from "path"
-import routes from "./routes/index.js"
-import errorHandler from "./middleware/errorHandler.js"
-import { checkPlagiarism } from "./controllers/plagiarismController.js"
-import { getTrustScore } from "./controllers/trustScoreController.js"
-import { uploadPaper } from "./controllers/paperUploadController.js"
-import { uploadToIPFS } from "./controllers/ipfsController.js"
-import { getPdfContent } from "./controllers/pdfContentController.js"
-import asyncHandler from "./utils/asyncHandler.js"
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import profileRouter from './routes/profile.js';
+import trustScoreRouter from './routes/trustScore.js';
+import filesRouter from './routes/files.js';
+import workflowArchiveRouter from './routes/workflowArchive.js';
+import pdfRouter from './routes/pdf.js';
+import { requireProfileCompletion } from './middleware/profileCompletion.js';
+import { notFound, errorHandler } from './utils/error.js';
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+dotenv.config();
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-const app = express()
+// Special middleware for large file uploads (trust score analysis)
+app.use('/api/trust-score', express.json({ limit: '100mb' }));
+app.use('/api/files', express.json({ limit: '100mb' }));
 
-// Middleware
-app.use(helmet())
-app.use(cors())
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-app.use(morgan("dev"))
 
-// Serve static files from the 'public' directory
-app.use(express.static(join(__dirname, "../public")))
+// Logging middleware
+app.use((req, res, next) => {
+//   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  if (Object.keys(req.body).length) {
+    console.log('Body:', req.body);
+  }
+  if (Object.keys(req.query).length) {
+    console.log('Query:', req.query);
+  }
+  if (Object.keys(req.headers).length) {
+    console.log('Headers:', req.headers);
+  }
+  next();
+});
 
-// Serve static files from the 'uploads' directory
-app.use("/uploads", express.static(join(__dirname, "../uploads")))
+// Example auth middleware (replace with real one)
+app.use((req, res, next) => {
+  req.user = req.headers['x-user'] ? JSON.parse(req.headers['x-user']) : {};
+  next();
+});
+app.use('/settings/profile', profileRouter);
+app.use('/api/trust-score', trustScoreRouter);
+app.use('/api/files', filesRouter);
+app.use('/api/workflow', workflowArchiveRouter);
+app.use('/api/pdf', pdfRouter);
+app.use(requireProfileCompletion);
 
-// Serve static files from the 'repository' directory
-app.use("/repository", express.static(join(__dirname, "../repository")))
+app.get('/', (req, res) => {
+  res.send('API is running...');
+});
 
-// Routes
-app.use("/api", routes)
+app.use(notFound);
+app.use(errorHandler);
 
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", message: "Service is running" })
-})
-
-// Serve index.html for the root route
-app.get("/", (req, res) => {
-  res.sendFile(join(__dirname, "../public/index.html"))
-})
-
-// Add direct routes for plagiarism check, trust score, paper upload, and IPFS upload
-app.post("/api/check-plagiarism", asyncHandler(checkPlagiarism))
-app.post("/api/trust-score", asyncHandler(getTrustScore))
-app.post("/api/upload-paper", asyncHandler(uploadPaper))
-app.post("/api/upload-to-ipfs", asyncHandler(uploadToIPFS))
-app.post("/api/pdf-content", asyncHandler(getPdfContent))
-
-// Error handling middleware
-app.use(errorHandler)
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: "Not found" })
-})
-
-export default app
+export default app;

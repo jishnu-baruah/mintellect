@@ -3,21 +3,28 @@
   "version": "1.0.0",
   "private": true,
   "description": "Backend for research paper eligibility scoring system",
-  "main": "src/server.js",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
     "lint": "next lint",
     "build": "next build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["research", "eligibility", "pdf", "analysis"],
+  "keywords": [
+    "research",
+    "eligibility",
+    "pdf",
+    "analysis"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "@xenova/transformers": "^2.8.0",
+    "aws-sdk": "^2.1692.0",
     "axios": "^1.6.0",
+    "cloudinary": "^2.7.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
@@ -27,16 +34,16 @@
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
     "pdf.js-extract": "^0.2.1",
+    "puppeteer": "^24.14.0",
     "winston": "^3.11.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2",
     "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "nodemon": "^3.0.2",
     "postcss": "^8",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"
   }
 }
-

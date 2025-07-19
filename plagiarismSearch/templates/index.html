@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PlagiarismSearch Full API UI</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; }
+        h1 { color: #2c3e50; }
+        form { margin-bottom: 2em; padding: 1em; border: 1px solid #ccc; border-radius: 8px; }
+        label { display: block; margin-top: 1em; }
+        textarea { width: 100%; height: 80px; }
+        .result { background: #f4f4f4; padding: 1em; border-radius: 8px; margin-top: 1em; white-space: pre-wrap; }
+        .section { margin-bottom: 2em; }
+        .tabs { display: flex; gap: 1em; margin-bottom: 1em; }
+        .tab { cursor: pointer; padding: 0.5em 1em; border: 1px solid #ccc; border-radius: 8px 8px 0 0; background: #eee; }
+        .tab.active { background: #fff; border-bottom: 1px solid #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .help { color: #666; font-size: 0.95em; margin-bottom: 0.5em; }
+        .required { color: #c0392b; }
+    </style>
+</head>
+<body>
+    <h1>PlagiarismSearch Full API UI</h1>
+    <div class="tabs">
+        <div class="tab active" data-tab="plagiarism">Plagiarism Check</div>
+        <div class="tab" data-tab="ai">AI Detection</div>
+        <div class="tab" data-tab="reports">Reports</div>
+        <div class="tab" data-tab="storage">Storage</div>
+        <div class="tab" data-tab="admin">Admin/Advanced</div>
+    </div>
+    <div class="tab-content active" id="tab-plagiarism">
+        <form id="plagiarism-form">
+            <h2>Plagiarism Check</h2>
+            <div class="help"><span class="required">*</span> At least one of <b>Text</b>, <b>File</b>, or <b>URL</b> is required.</div>
+            <label>Text: <span class="help">Paste the document text here. <span class="required">*</span> or File/URL</span><br><textarea name="text"></textarea></label>
+            <label>File: <span class="help">Upload a document file. <span class="required">*</span> or Text/URL</span><br><input type="file" name="file"></label>
+            <label>URL: <span class="help">Public link to a document. <span class="required">*</span> or Text/File</span><br><input type="text" name="url"></label>
+            <label>Title: <span class="help">(Optional) Give your submission a title for easier tracking.</span><br><input type="text" name="title"></label>
+            <fieldset style="margin-top:1em;">
+                <legend>Advanced Options (all optional):</legend>
+                <label><input type="checkbox" name="is_search_filter_references" value="1"> Exclude references <span class="help">Ignore bibliography/references in check.</span></label>
+                <label><input type="checkbox" name="is_search_filter_quotes" value="1"> Exclude quotes <span class="help">Ignore quoted text in check.</span></label>
+                <label><input type="checkbox" name="is_search_filter_chars" value="1"> Only latin chars <span class="help">Check only latin characters.</span></label>
+                <label><input type="checkbox" name="is_search_ai" value="1" checked> Search AI <span class="help">Also check for AI-generated content.</span></label>
+                <label>Disable URLs (comma): <span class="help">(Optional) Whitelist: URLs to ignore in web search.</span><br><input type="text" name="search_web_disable_urls"></label>
+                <label>Exclude URLs (comma): <span class="help">(Optional) Blacklist: URLs to exclude from results.</span><br><input type="text" name="search_web_exclude_urls"></label>
+                <label>Storage Sensitivity %: <span class="help">(Optional) Minimum similarity % for storage matches.</span><br><input type="number" name="search_storage_sensibility_percentage"></label>
+                <label>Storage Sensitivity Words: <span class="help">(Optional) Minimum word count for storage matches.</span><br><input type="number" name="search_storage_sensibility_words"></label>
+            </fieldset>
+            <button type="submit">Check Plagiarism</button>
+        </form>
+        <div id="plagiarism-result" class="result"></div>
+    </div>
+    <div class="tab-content" id="tab-ai">
+        <form id="ai-form">
+            <h2>AI Detection</h2>
+            <label>Text:<br><textarea name="text"></textarea></label>
+            <label>File:<br><input type="file" name="file"></label>
+            <label>URL:<br><input type="text" name="url"></label>
+            <label>Title:<br><input type="text" name="title"></label>
+            <label>Advanced:<br>
+                <input type="checkbox" name="is_filter_references" value="1"> Exclude references
+                <input type="checkbox" name="force" value="1"> Force new check
+            </label>
+            <button type="submit">Check AI</button>
+        </form>
+        <div id="ai-result" class="result"></div>
+    </div>
+    <div class="tab-content" id="tab-reports">
+        <form id="list-reports-form">
+            <h2>List Reports</h2>
+            <label>IDs (comma):<br><input type="text" name="ids"></label>
+            <label>Remote ID:<br><input type="text" name="remote_id"></label>
+            <label>Show Relations:<br><input type="number" name="show_relations" value="0"></label>
+            <label>Page:<br><input type="number" name="page" value="1"></label>
+            <label>Limit:<br><input type="number" name="limit" value="10"></label>
+            <button type="submit">List Reports</button>
+        </form>
+        <div id="list-reports-result" class="result"></div>
+        <form id="report-details-form">
+            <h2>Report Details</h2>
+            <label>Report ID:<br><input type="number" name="report_id"></label>
+            <label>Show Relations:<br><input type="number" name="show_relations" value="0"></label>
+            <button type="submit">Get Report</button>
+        </form>
+        <div id="report-details-result" class="result"></div>
+        <form id="report-sources-form">
+            <h2>Grouped Sources</h2>
+            <label>Report ID:<br><input type="number" name="report_id"></label>
+            <button type="submit">Get Sources</button>
+        </form>
+        <div id="report-sources-result" class="result"></div>
+        <form id="report-html-form">
+            <h2>HTML Highlighted Report</h2>
+            <label>Report ID:<br><input type="number" name="report_id" id="html-report-id"></label>
+            <button type="submit">Get HTML</button>
+            <button type="button" id="view-html-btn" style="margin-left:1em;">View as HTML</button>
+            <span class="help" style="margin-left:1em; color:#2980b9;">Tip: Click "View as HTML", then use your browser's <b>Print</b> (Ctrl+P) to save as PDF.</span>
+        </form>
+        <div id="report-html-result" class="result"></div>
+        <form id="progress-form">
+            <h2>Progress/Status</h2>
+            <label>Report ID:<br><input type="number" name="report_id"></label>
+            <button type="submit">Get Progress</button>
+        </form>
+        <div id="progress-result" class="result"></div>
+    </div>
+    <div class="tab-content" id="tab-storage">
+        <form id="storage-form">
+            <h2>Store Document</h2>
+            <label>Text:<br><textarea name="text"></textarea></label>
+            <label>File:<br><input type="file" name="file"></label>
+            <label>URL:<br><input type="text" name="url"></label>
+            <label>Title:<br><input type="text" name="title"></label>
+            <label>Group ID:<br><input type="number" name="group_id"></label>
+            <label>User ID:<br><input type="number" name="user_id"></label>
+            <label>File ID:<br><input type="number" name="file_id"></label>
+            <button type="submit">Store</button>
+        </form>
+        <div id="storage-result" class="result"></div>
+    </div>
+    <div class="tab-content" id="tab-admin">
+        <h2>Admin & Advanced Actions</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 2em;">
+            <div style="flex: 1 1 350px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 1em; margin-bottom: 2em;">
+                <h3 style="margin-top:0;">Update Report <span title="Change report metadata (title, callback, etc.)" style="cursor:help; color:#888;">&#9432;</span></h3>
+                <form id="update-report-form">
+                    <label>Report ID:<br><input type="number" name="report_id" required></label>
+                    <label>JSON Body:<br><textarea name="json" placeholder='{"title": "New Title"}'></textarea></label>
+                    <button type="submit">Update</button>
+                </form>
+                <div id="update-report-result" class="result"></div>
+            </div>
+            <div style="flex: 1 1 350px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 1em; margin-bottom: 2em;">
+                <h3 style="margin-top:0; color:#c0392b;">Delete Report <span title="This cannot be undone!" style="cursor:help; color:#c0392b;">&#9888;</span></h3>
+                <form id="delete-report-form">
+                    <label>Report ID:<br><input type="number" name="report_id" required></label>
+                    <button type="submit" style="background:#c0392b; color:white;">Delete</button>
+                </form>
+                <div id="delete-report-result" class="result"></div>
+            </div>
+            <div style="flex: 1 1 350px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 1em; margin-bottom: 2em;">
+                <h3 style="margin-top:0;">AI Report Details <span title="Get details for an AI report by ID" style="cursor:help; color:#888;">&#9432;</span></h3>
+                <form id="ai-report-details-form">
+                    <label>AI Report ID:<br><input type="number" name="report_id" required></label>
+                    <label>Show Relations:<br><input type="number" name="show_relations" value="0"></label>
+                    <button type="submit">Get AI Report</button>
+                </form>
+                <div id="ai-report-details-result" class="result"></div>
+            </div>
+            <div style="flex: 1 1 350px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 1em; margin-bottom: 2em;">
+                <h3 style="margin-top:0;">AI HTML Highlighted <span title="Get HTML-highlighted AI report" style="cursor:help; color:#888;">&#9432;</span></h3>
+                <form id="ai-html-form">
+                    <label>AI Report ID:<br><input type="number" name="report_id" required></label>
+                    <button type="submit">Get AI HTML</button>
+                </form>
+                <div id="ai-html-result" class="result"></div>
+            </div>
+            <div style="flex: 1 1 350px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 2px 8px #0001; padding: 1em; margin-bottom: 2em;">
+                <h3 style="margin-top:0;">Webhook Test <span title="Simulate a callback from PlagiarismSearch" style="cursor:help; color:#888;">&#9432;</span></h3>
+                <form id="webhook-form">
+                    <label>JSON Body:<br><textarea name="json" placeholder='{"event": "report.checked", "data": {...}}'></textarea></label>
+                    <button type="submit">Send Webhook</button>
+                </form>
+                <div id="webhook-result" class="result"></div>
+            </div>
+        </div>
+        <div class="help" style="margin-top:2em; color:#888;">Tip: Hover over the <span style="color:#888;">&#9432;</span> or <span style="color:#c0392b;">&#9888;</span> icons for more info on each action.</div>
+    </div>
+    <script>
+    // Tab logic
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.onclick = function() {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        };
+    });
+    function handleForm(formId, endpoint, resultId, method = 'POST', isJson = false) {
+        document.getElementById(formId).addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            let body, headers = {};
+            if (isJson) {
+                try {
+                    body = JSON.stringify(JSON.parse(form.json.value));
+                } catch {
+                    document.getElementById(resultId).textContent = 'Invalid JSON';
+                    return;
+                }
+                headers['Content-Type'] = 'application/json';
+            } else {
+                body = new FormData(form);
+                // Remove empty optional number fields before sending
+                ['search_storage_sensibility_percentage', 'search_storage_sensibility_words'].forEach(field => {
+                    if (!body.get(field)) {
+                        body.delete(field);
+                    }
+                });
+            }
+            document.getElementById(resultId).textContent = 'Loading...';
+            try {
+                const res = await fetch(endpoint, {
+                    method,
+                    body,
+                    headers
+                });
+                const data = await res.json();
+                document.getElementById(resultId).textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById(resultId).textContent = 'Error: ' + err;
+            }
+        });
+    }
+    handleForm('plagiarism-form', '/check', 'plagiarism-result');
+    handleForm('ai-form', '/ai-check', 'ai-result');
+    handleForm('list-reports-form', '/reports', 'list-reports-result', 'GET');
+    handleForm('report-details-form', '/report/' + document.querySelector('#report-details-form input[name=report_id]').value, 'report-details-result', 'GET');
+    handleForm('report-sources-form', '/reports/sources/' + document.querySelector('#report-sources-form input[name=report_id]').value, 'report-sources-result', 'GET');
+    handleForm('report-html-form', '/reports/html/' + document.querySelector('#report-html-form input[name=report_id]').value, 'report-html-result', 'GET');
+    handleForm('progress-form', '/progress/' + document.querySelector('#progress-form input[name=report_id]').value, 'progress-result', 'GET');
+    handleForm('storage-form', '/storage/create', 'storage-result');
+    handleForm('update-report-form', '/reports/update/' + document.querySelector('#update-report-form input[name=report_id]').value, 'update-report-result', 'PUT', true);
+    handleForm('delete-report-form', '/reports/delete/' + document.querySelector('#delete-report-form input[name=report_id]').value, 'delete-report-result', 'DELETE');
+    handleForm('ai-report-details-form', '/ai-reports/' + document.querySelector('#ai-report-details-form input[name=report_id]').value, 'ai-report-details-result', 'GET');
+    handleForm('ai-html-form', '/ai-reports/html/' + document.querySelector('#ai-html-form input[name=report_id]').value, 'ai-html-result', 'GET');
+    handleForm('webhook-form', '/webhook/plagiarismsearch', 'webhook-result', 'POST', true);
+    document.getElementById('view-html-btn').onclick = async function() {
+        const reportId = document.getElementById('html-report-id').value;
+        if (!reportId) {
+            alert('Please enter a Report ID.');
+            return;
+        }
+        const res = await fetch(`/reports/html/${reportId}`);
+        const data = await res.json();
+        if (data && data.data && data.data.html) {
+            const htmlWindow = window.open('', '_blank');
+            const style = `
+                <style>
+                    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f4f6fa; color: #222; }
+                    .report-container { max-width: 900px; margin: 2em auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px #0002; padding: 2em; }
+                    h1, h2, h3 { color: #2c3e50; margin-top: 1.5em; }
+                    h1 { font-size: 2.2em; border-bottom: 2px solid #e0e0e0; padding-bottom: 0.3em; }
+                    h2 { font-size: 1.4em; border-bottom: 1px solid #e0e0e0; padding-bottom: 0.2em; }
+                    .ps-rb-ai { background: #e6e6ff; border-radius: 4px; padding: 0 2px; }
+                    .rb-r { background: #ffb3b3; border-radius: 4px; padding: 0 2px; }
+                    .rb-y { background: #fff7b2; border-radius: 4px; padding: 0 2px; }
+                    .rb-p { background: #b2e0ff; border-radius: 4px; padding: 0 2px; }
+                    .status--10 .rp, .status--11 .rp { background: #e0e0e0; }
+                    .report-section { margin-bottom: 2em; padding: 1.5em; border-radius: 8px; background: #f9fafc; box-shadow: 0 2px 8px #0001; }
+                    a { color: #1565c0; text-decoration: underline; }
+                    a:hover { color: #0d47a1; }
+                    .source-link { font-size: 0.98em; color: #388e3c; }
+                    .highlight { font-weight: bold; }
+                    .report-meta { font-size: 1.05em; color: #555; margin-bottom: 1em; }
+                    @media print { body { background: #fff; } .report-container { box-shadow: none; } }
+                </style>
+            `;
+            htmlWindow.document.write('<html><head><title>Plagiarism Report HTML</title>' + style + '</head><body><div class="report-container">' + data.data.html + '</div></body></html>');
+            htmlWindow.document.close();
+        } else {
+            alert('No HTML content found in report.');
+        }
+    };
+    </script>
+</body>
+</html> 

@@ -6,7 +6,7 @@ import { GlassCard } from "./ui/glass-card"
 import { RippleButton } from "./ui/ripple-button"
 import { FileText, Check, Clock, Share2, Download, ExternalLink, Copy, Shield } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { uploadToPinata } from "../lib/utils";
+import { uploadMetadata } from "../lib/utils";
 import { ethers } from "ethers";
 import contractABI from "../lib/MintellectNFT_ABI.json";
 
@@ -48,7 +48,7 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
       };
       setProgress(30);
       // 2. Upload to Pinata
-      const ipfsUrl = await uploadToPinata(metadata);
+      const ipfsUrl = await uploadMetadata(metadata);
       setProgress(60);
       // 3. Interact with contract via MetaMask
       if (!(window as any).ethereum) throw new Error("MetaMask not found");
@@ -83,7 +83,26 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
       setProgress(100);
       if (onComplete) onComplete();
     } catch (err: any) {
-      setError(err.message || "Minting failed");
+      console.error('Minting error:', err);
+      let errorMessage = "Minting failed";
+      
+      if (err.message) {
+        if (err.message.includes('Pinata API keys are missing')) {
+          errorMessage = "Pinata API keys not configured. Using local fallback.";
+        } else if (err.message.includes('Failed to upload to Pinata')) {
+          errorMessage = "IPFS upload failed. Using local metadata.";
+        } else if (err.message.includes('MetaMask not found')) {
+          errorMessage = "MetaMask not found. Please install MetaMask extension.";
+        } else if (err.message.includes('user rejected')) {
+          errorMessage = "Transaction was rejected by user.";
+        } else if (err.message.includes('insufficient funds')) {
+          errorMessage = "Insufficient funds for transaction.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
       setStatus("failed");
     }
   };
