@@ -4,7 +4,8 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Navbar } from "@/components/navbar"
-import { WalletProvider } from "@/components/wallet-provider"
+import Web3Providers from "@/components/Web3Providers";
+import { WalletProvider } from "@/components/wallet-provider";
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { usePathname } from "next/navigation"
 import { AnimatedLogo } from "@/components/ui/animated-logo"
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
 }
 
 // Toggle this to enable/disable maintenance mode
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 export default function RootLayout({
   children,
@@ -65,21 +66,23 @@ export default function RootLayout({
         ) : (
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
             <div className="fixed inset-0 z-0 scale-[0.8] origin-top-left w-[125vw] h-[125vh] overflow-auto">
-              <WalletProvider>
-                <div className="flex h-[125vh] bg-black overflow-hidden">
-                  <DashboardSidebar />
-                  <div className="flex-1 flex flex-col overflow-hidden ml-16 md:ml-0">
-                    <div className="fixed inset-0 -z-10 pointer-events-none">
-                      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-                      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-mintellect-primary/5 rounded-full filter blur-[80px]"></div>
-                      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-mintellect-secondary/5 rounded-full filter blur-[80px]"></div>
+              <Web3Providers>
+                <WalletProvider>
+                  <div className="flex h-[125vh] bg-black overflow-hidden">
+                    <DashboardSidebar />
+                    <div className="flex-1 flex flex-col overflow-hidden ml-16 md:ml-0">
+                      <div className="fixed inset-0 -z-10 pointer-events-none">
+                        <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+                        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-mintellect-primary/5 rounded-full filter blur-[80px]"></div>
+                        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-mintellect-secondary/5 rounded-full filter blur-[80px]"></div>
+                      </div>
+                      <main className="flex-1 overflow-y-auto hide-scrollbar">
+                        <ProfileGate>{children}</ProfileGate>
+                      </main>
                     </div>
-                    <main className="flex-1 overflow-y-auto hide-scrollbar">
-                      <ProfileGate>{children}</ProfileGate>
-                    </main>
                   </div>
-                </div>
-              </WalletProvider>
+                </WalletProvider>
+              </Web3Providers>
             </div>
           </ThemeProvider>
         )}

@@ -11,6 +11,7 @@ import ReactDOM from "react-dom";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import React from "react";
 import { useRouter } from "next/navigation"
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 
 // Minimal portal-based tooltip for sidebar
 function SidebarTooltip({ children, label }: { children: React.ReactNode, label: string }) {
@@ -69,6 +70,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
   const { walletConnected, connectWallet, disconnectWallet } = useWallet()
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
+  const { openConnectModal } = useConnectModal();
 
   // Expand sidebar if not mobile on mount
   useEffect(() => {
@@ -180,7 +182,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
         {/* Bottom section (wallet/socials) */}
         <div className="flex flex-col items-center gap-2 mt-auto mb-2">
           <button
-            onClick={walletConnected ? disconnectWallet : connectWallet}
+            onClick={walletConnected ? disconnectWallet : (isMobile ? openConnectModal : connectWallet)}
             className={cn(
               "w-12 h-12 flex items-center justify-center rounded-xl border text-xs font-semibold transition-colors",
               walletConnected
@@ -416,7 +418,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
       )}>
         {/* Wallet Connect Button */}
         <button
-          onClick={walletConnected ? disconnectWallet : connectWallet}
+          onClick={walletConnected ? disconnectWallet : (isMobile ? openConnectModal : connectWallet)}
           className={cn(
             "w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors min-w-0",
             walletConnected

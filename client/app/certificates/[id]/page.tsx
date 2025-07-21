@@ -6,7 +6,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { RippleButton } from "@/components/ui/ripple-button"
 import { Shield, Download, Share2, ExternalLink, Copy, FileText, Check } from "lucide-react"
 import Link from "next/link"
-import { ethers } from "ethers"
+import { useAccount, useContractRead } from 'wagmi';
 import contractABI from "@/lib/MintellectNFT_ABI.json"
 
 const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004"
@@ -26,17 +26,21 @@ export default function CertificatePage({ params }: { params: Promise<{ id: stri
   } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { address } = useAccount();
 
   useEffect(() => {
     const fetchCertificate = async () => {
       setLoading(true)
       setError(null)
       try {
-        if (!(window as any).ethereum) throw new Error("MetaMask not found")
-        const provider = new ethers.BrowserProvider((window as any).ethereum)
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider)
+        if (!address) throw new Error("Wallet not connected")
         const tokenId = id
-        const tokenURI = await contract.tokenURI(tokenId)
+        const tokenURI = await useContractRead({
+          address: CONTRACT_ADDRESS,
+          abi: contractABI,
+          functionName: 'tokenURI',
+          args: [tokenId],
+        })
         const ipfsUrl = tokenURI.startsWith("ipfs://")
           ? `https://gateway.pinata.cloud/ipfs/${tokenURI.replace("ipfs://", "")}`
           : tokenURI
@@ -46,10 +50,30 @@ export default function CertificatePage({ params }: { params: Promise<{ id: stri
         // If transactionHash is not in metadata, fetch from blockchain logs
         if (!txHash) {
           // Get the Transfer event for this tokenId
-          const filter = contract.filters.Transfer(null, null, tokenId)
-          const logs = await contract.queryFilter(filter, 0, "latest")
-          if (logs.length > 0) {
-            txHash = logs[0].transactionHash
+          const ownerOf = await useContractRead({
+            address: CONTRACT_ADDRESS,
+            abi: contractABI,
+            functionName: 'ownerOf',
+            args: [tokenId],
+          })
+          const owner = ownerOf.result;
+          const filter = {
+            address: CONTRACT_ADDRESS,
+            topics: [
+              "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", // Transfer event signature
+              null, // From address (null for Transfer)
+              null, // To address (null for Transfer)
+              tokenId, // Token ID
+            ],
+          };
+          const logs = await useContractRead({
+            address: CONTRACT_ADDRESS,
+            abi: contractABI,
+            functionName: 'queryFilter',
+            args: [filter, 0, "latest"],
+          })
+          if (logs.result.length > 0) {
+            txHash = logs.result[0].transactionHash
           }
         }
         setCertificateData({
@@ -70,7 +94,7 @@ export default function CertificatePage({ params }: { params: Promise<{ id: stri
       }
     }
     fetchCertificate()
-  }, [id])
+  }, [id, address])
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard

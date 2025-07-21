@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useProfileChecklist, useProfileStatus } from "@/hooks/useProfileChecklist"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
@@ -96,7 +96,7 @@ export default function ProfileSettings() {
       formData.append("institution", form.institution);
       formData.append("bio", form.bio);
       if (avatarFile) formData.append("avatar", avatarFile);
-      const res = await fetch("http://localhost:5000/settings/profile/profile", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings/profile/profile`, {
         method: "POST",
         body: formData,
         headers: { "x-wallet": walletAddress }
@@ -110,6 +110,34 @@ export default function ProfileSettings() {
     }
   }
 
+  // Prefill form with existing profile data
+  useEffect(() => {
+    if (!walletConnected || !walletAddress) return;
+    const allFieldsEmpty = Object.values(form).every((v) => !v);
+    if (!allFieldsEmpty) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings/profile/profile?wallet=${walletAddress}`)
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch profile");
+        return res.json();
+      })
+      .then(data => {
+        console.log("Fetched profile data:", data); // Debug
+        if (data && data.profile) {
+          setForm({
+            firstName: data.profile.name?.split(' ')[0] || "",
+            lastName: data.profile.name?.split(' ').slice(1).join(' ') || "",
+            email: data.profile.mail || "",
+            institution: data.profile.institution || "",
+            bio: data.profile.bio || "",
+            avatarUrl: data.profile.avatar || ""
+          });
+        }
+      })
+      .catch((err) => {
+        console.error("Profile fetch error:", err);
+      });
+  }, [walletConnected, walletAddress]);
+
   if (checking) return <div className="flex items-center justify-center h-[60vh]"><span className="text-lg text-gray-400">Checking profile status...</span></div>;
 
   if (!walletConnected || !walletAddress) {
@@ -118,8 +146,8 @@ export default function ProfileSettings() {
       <div className="flex flex-col items-center justify-center h-[60vh] gap-6">
         <span className="text-lg text-yellow-400">Connect your wallet to use Mintellect.</span>
         <RippleButton
-          onClick={connectWallet}
-          disabled={isLoading}
+          onClick={() => { if (!walletConnected) connectWallet(); }}
+          disabled={isLoading || walletConnected}
           className="flex items-center gap-2 w-full max-w-[220px] justify-center px-4 py-1.5 rounded-full border border-mintellect-primary shadow-sm bg-mintellect-primary text-white hover:bg-mintellect-primary/80 transition font-medium text-base"
         >
           <Wallet className="w-4 h-4" />

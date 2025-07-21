@@ -29,6 +29,9 @@ export default function DocumentsPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+  const PLAGIARISM_API_URL = process.env.NEXT_PUBLIC_PLAGIARISM_API_URL || '';
+
   const getWorkflowStatus = (workflow: WorkflowState | null) => {
     if (!workflow) return 'none'
     
@@ -391,7 +394,7 @@ export default function DocumentsPage() {
       if (parsedData.reportId) {
         try {
           console.log('Fetching sources from API for report ID:', parsedData.reportId)
-          const sourcesResponse = await fetch(`http://localhost:8000/reports/sources/${parsedData.reportId}`)
+          const sourcesResponse = await fetch(`${PLAGIARISM_API_URL}/reports/sources/${parsedData.reportId}`)
           if (sourcesResponse.ok) {
             const sourcesData = await sourcesResponse.json()
             if (sourcesData.data?.sources) {
@@ -419,7 +422,7 @@ export default function DocumentsPage() {
       console.log('Sending request to server:', requestBody)
 
       // Use the new S3 PDF generation endpoint
-      const response = await fetch('http://localhost:5000/api/pdf/generate-plagiarism-report-s3', {
+      const response = await fetch(`${API_URL}/api/pdf/generate-plagiarism-report-s3`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -441,7 +444,7 @@ export default function DocumentsPage() {
             title: "Report Generated Successfully",
             description: "Your plagiarism report has been generated and opened in a new tab. The file will download automatically.",
           })
-        } else {
+      } else {
           console.error('Failed to generate report:', result)
           // Try fallback to local endpoint
           await downloadPlagiarismReportLocal(workflow, parsedData, uniqueSources)
@@ -469,7 +472,7 @@ export default function DocumentsPage() {
     try {
       console.log('Trying local PDF generation as fallback...')
       
-      const response = await fetch('http://localhost:5000/api/pdf/generate-plagiarism-report-local', {
+      const response = await fetch(`${API_URL}/api/pdf/generate-plagiarism-report-local`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -512,7 +515,7 @@ export default function DocumentsPage() {
 
     try {
       // Use the new S3 PDF generation endpoint for trust score reports
-      const response = await fetch('http://localhost:5000/api/pdf/generate-trust-score-report-s3', {
+      const response = await fetch(`${API_URL}/api/pdf/generate-trust-score-report-s3`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -662,13 +665,13 @@ export default function DocumentsPage() {
                         transition={{ delay: 0.1 * index }}
                         className="border border-gray-700 rounded-lg overflow-hidden hover:bg-gray-800/30 transition-colors"
                       >
-                        <div className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
+                        <div className="p-4 sm:p-4">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 w-full pb-2">
                               <div className="flex items-center gap-2">
                                 {getStatusIcon(workflow.status)}
                                 <div>
-                                  <h3 className="font-medium text-white">
+                                  <h3 className="font-medium text-white w-full block break-words whitespace-normal">
                                     {workflow.documentName || 'Untitled Document'}
                                     {workflow.isCurrent && (
                                       <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-1 rounded">
@@ -683,7 +686,7 @@ export default function DocumentsPage() {
                               </div>
                             </div>
                             
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-row gap-2 w-full sm:w-auto overflow-x-auto">
                               <RippleButton
                                 onClick={() => toggleWorkflowExpansion(workflowId)}
                                 variant="outline"
@@ -790,43 +793,43 @@ export default function DocumentsPage() {
                                       
                                       return (
                                         <>
-                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div className="text-center">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                      <div className="text-center">
                                               <div className={`text-2xl font-bold ${getPlagiarismScoreColor(plagiarismData.plagiarismScore)}`}>
                                                 {plagiarismData.plagiarismScore}%
-                                              </div>
-                                              <div className="text-xs text-gray-400">Plagiarism Score</div>
-                                            </div>
-                                            <div className="text-center">
-                                              <div className="text-2xl font-bold text-blue-500">
+                                        </div>
+                                        <div className="text-xs text-gray-400">Plagiarism Score</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className="text-2xl font-bold text-blue-500">
                                                 {plagiarismData.originalityScore}%
-                                              </div>
-                                              <div className="text-xs text-gray-400">Originality Score</div>
-                                            </div>
-                                            <div className="text-center">
-                                              <div className="text-2xl font-bold text-purple-500">
+                                        </div>
+                                        <div className="text-xs text-gray-400">Originality Score</div>
+                                      </div>
+                                      <div className="text-center">
+                                        <div className="text-2xl font-bold text-purple-500">
                                                 {plagiarismData.matchesCount}
-                                              </div>
-                                              <div className="text-xs text-gray-400">Matches Found</div>
-                                            </div>
-                                          </div>
+                                        </div>
+                                        <div className="text-xs text-gray-400">Matches Found</div>
+                                      </div>
+                                    </div>
                                           {plagiarismData.reportId && (
-                                            <div className="mt-4">
-                                              <RippleButton
-                                                onClick={() => downloadPlagiarismReport(workflow)}
-                                                size="sm"
-                                                className="flex items-center gap-2"
+                                      <div className="mt-4">
+                                        <RippleButton
+                                          onClick={() => downloadPlagiarismReport(workflow)}
+                                          size="sm"
+                                          className="flex items-center gap-2"
                                                 disabled={downloadingPlagiarismReport === workflow.documentId}
-                                              >
+                                        >
                                                 {downloadingPlagiarismReport === workflow.documentId ? (
                                                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                                 ) : (
-                                                  <Download className="h-4 w-4" />
+                                          <Download className="h-4 w-4" />
                                                 )}
                                                 {downloadingPlagiarismReport === workflow.documentId ? "Generating..." : "Download Report"}
-                                              </RippleButton>
-                                            </div>
-                                          )}
+                                        </RippleButton>
+                                      </div>
+                                    )}
                                         </>
                                       )
                                     })()}
@@ -846,26 +849,26 @@ export default function DocumentsPage() {
                                       
                                       return (
                                         <>
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="text-center">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <div className="text-center">
                                               <div className={`text-2xl font-bold ${getTrustScoreColor(trustData.overallScore)}`}>
                                                 {trustData.overallScore}/100
-                                              </div>
-                                              <div className="text-xs text-gray-400">Overall Trust Score</div>
-                                            </div>
-                                            <div className="space-y-2 text-sm">
-                                              <div className="flex justify-between">
-                                                <span className="text-gray-400">Plagiarism Check:</span>
+                                        </div>
+                                        <div className="text-xs text-gray-400">Overall Trust Score</div>
+                                      </div>
+                                      <div className="space-y-2 text-sm">
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-400">Plagiarism Check:</span>
                                                 <span className="text-white">{trustData.breakdown.plagiarism.score}/100</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span className="text-gray-400">AI Detection:</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-400">AI Detection:</span>
                                                 <span className="text-white">{trustData.breakdown.aiDetection.score}/100</span>
-                                              </div>
-                                              <div className="flex justify-between">
+                                            </div>
+                                            <div className="flex justify-between">
                                                 <span className="text-gray-400">Academic Quality:</span>
                                                 <span className="text-white">{trustData.breakdown.academicQuality.score}/100</span>
-                                              </div>
+                                            </div>
                                               <div className="flex justify-between">
                                                 <span className="text-gray-400">Methodology:</span>
                                                 <span className="text-white">{trustData.breakdown.methodology.score}/100</span>
@@ -899,8 +902,8 @@ export default function DocumentsPage() {
                                                       <li key={idx}>{flag}</li>
                                                     ))}
                                                   </ul>
-                                                </>
-                                              )}
+                                          </>
+                                        )}
                                               {trustData.aiAnalysis.recommendations && trustData.aiAnalysis.recommendations.length > 0 && (
                                                 <>
                                                   <li><strong>Recommendations:</strong></li>
@@ -912,7 +915,7 @@ export default function DocumentsPage() {
                                                 </>
                                               )}
                                             </ul>
-                                          </div>
+                                      </div>
                                           <div className="mt-4">
                                             <RippleButton
                                               onClick={() => downloadTrustScoreReport(workflow)}
@@ -927,7 +930,7 @@ export default function DocumentsPage() {
                                               )}
                                               {downloadingTrustScoreReport === workflow.documentId ? "Generating..." : "Download Trust Score Report"}
                                             </RippleButton>
-                                          </div>
+                                    </div>
                                         </>
                                       )
                                     })()}

@@ -25,6 +25,7 @@ import { Breadcrumb } from "@/components/breadcrumb"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { useWallet } from "@/components/wallet-provider"
+import { useAccount, useContractRead } from 'wagmi';
 
 const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004"
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
@@ -35,16 +36,24 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { walletAddress } = useWallet();
+  const { address } = useAccount();
+
+  // Read tokenCounter
+  const { data: total, isLoading: isTotalLoading } = useContractRead({
+    address: CONTRACT_ADDRESS,
+    abi: contractABI,
+    functionName: 'tokenCounter',
+    watch: true,
+  });
 
   useEffect(() => {
     const fetchNFTs = async () => {
       setLoading(true)
       setError(null)
       try {
-        if (!(window as any).ethereum) throw new Error("MetaMask not found")
+        if (!address) throw new Error("Wallet not connected")
         const provider = new ethers.BrowserProvider((window as any).ethereum)
         const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider)
-        const total = await contract.tokenCounter()
         const nfts: any[] = []
         for (let i = 0; i < Number(total); i++) {
           try {
@@ -76,7 +85,7 @@ export default function AnalyticsPage() {
       }
     }
     fetchNFTs()
-  }, [walletAddress])
+  }, [walletAddress, address, total])
 
   // Compute stats
   const totalPapers = nfts.length

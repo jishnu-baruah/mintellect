@@ -264,7 +264,7 @@ export default function WorkflowPage() {
     
     const poll = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/status/${reportId}`);
+        const response = await fetch(`${PLAGIARISM_API_URL}/status/${reportId}`);
         if (!response.ok) throw new Error(`Status check failed: ${response.status}`);
         const data = await response.json();
         
@@ -273,7 +273,7 @@ export default function WorkflowPage() {
         if (data.data.status === 2 || data.data.status_label === 'checked') {
           // Report is complete
           console.log('Report completed, fetching final results');
-          const finalResponse = await fetch(`http://localhost:8000/report/${reportId}`);
+          const finalResponse = await fetch(`${PLAGIARISM_API_URL}/report/${reportId}`);
           if (finalResponse.ok) {
             const finalData = await finalResponse.json();
             console.log('Final report data:', finalData);
@@ -281,7 +281,7 @@ export default function WorkflowPage() {
             
             // Fetch HTML report
             try {
-              const htmlRes = await fetch(`http://localhost:8000/reports/html/${reportId}`);
+              const htmlRes = await fetch(`${PLAGIARISM_API_URL}/reports/html/${reportId}`);
               if (htmlRes.ok) {
                 const htmlData = await htmlRes.json();
                 setPlagiarismResult((prev: any) => ({
@@ -327,7 +327,7 @@ export default function WorkflowPage() {
       const formData = new FormData();
       formData.append('text', documentText);
       formData.append('title', documentName || 'Document.txt');
-      const response = await fetch('http://localhost:8000/check', {
+      const response = await fetch(`${PLAGIARISM_API_URL}/check`, {
         method: 'POST',
         body: formData,
       });
@@ -355,7 +355,7 @@ export default function WorkflowPage() {
         // If we have a report ID, fetch the HTML report
         if (data.data.id) {
           try {
-            const htmlRes = await fetch(`http://localhost:8000/reports/html/${data.data.id}`);
+            const htmlRes = await fetch(`${PLAGIARISM_API_URL}/reports/html/${data.data.id}`);
             if (htmlRes.ok) {
               const htmlData = await htmlRes.json();
               console.log('HTML Report Response:', htmlData);
@@ -555,14 +555,16 @@ export default function WorkflowPage() {
                 <p className="text-sm text-gray-500 mt-2">This may take a few moments</p>
               </div>
             ) : plagiarismResult ? (
-              <div className="text-center py-8">
+              <div className="text-center py-8 flex flex-col items-center gap-4 sm:block">
                 <PlagiarismReportViewer 
                   plagiarismResult={plagiarismResult}
                   documentName={documentName || "Document"}
                 />
-                <RippleButton className="mt-6" onClick={() => completeStep()}>
-                  Continue to Next Step
-                </RippleButton>
+                <div className="w-full sm:w-auto mt-4 flex flex-col sm:flex-row justify-center items-center gap-2">
+                  <RippleButton className="w-full sm:w-auto" onClick={() => completeStep()}>
+                    Continue to Next Step
+                  </RippleButton>
+                </div>
               </div>
             ) : (
               <div className="text-center py-8">
@@ -601,7 +603,7 @@ export default function WorkflowPage() {
           <div className="text-center py-12">
             <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
             <h3 className="text-xl font-bold mb-2">Invalid Step</h3>
-            <RippleButton onClick={() => setStep(0)} fullWidth={true}>
+            <RippleButton onClick={clearWorkflowState} fullWidth={true}>
               Start Over
             </RippleButton>
           </div>
@@ -841,7 +843,7 @@ export default function WorkflowPage() {
                 <div className="text-center py-12">
                   <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
                   <h3 className="text-xl font-bold mb-2">Error</h3>
-                  <RippleButton onClick={() => setStep(0)} fullWidth={true}>
+                  <RippleButton onClick={clearWorkflowState} fullWidth={true}>
                     Start Over
                   </RippleButton>
                 </div>

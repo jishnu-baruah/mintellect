@@ -6,6 +6,8 @@ import Link from "next/link";
 import React from "react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { isMobileDevice } from './wallet-provider';
 
 export function useProfileGate() {
   const { walletConnected, walletAddress } = useWallet();
@@ -18,18 +20,33 @@ export function useProfileGate() {
       setChecking(false);
       return;
     }
-    setChecking(true);
-    fetch(`http://localhost:5000/settings/profile/profile?wallet=${walletAddress}`)
+    // Check cache first
+    const cacheKey = `profileComplete_${walletAddress}`;
+    const cached = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null;
+    if (cached !== null) {
+      setProfileComplete(cached === 'true');
+      setChecking(false);
+    } else {
+      setChecking(true);
+    }
+    // Always fetch in background
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings/profile/profile?wallet=${walletAddress}&_=${Date.now()}`)
       .then(res => {
         if (res.status === 404) return { allComplete: false };
         return res.json();
       })
       .then(data => {
         setProfileComplete(data.allComplete);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(cacheKey, String(data.allComplete));
+        }
         setChecking(false);
       })
       .catch(() => {
         setProfileComplete(false);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(cacheKey, 'false');
+        }
         setChecking(false);
       });
   }, [walletConnected, walletAddress]);
@@ -40,6 +57,7 @@ export function useProfileGate() {
 export function ProfileGate({ children }: { children: React.ReactNode }) {
   const { profileComplete, checking, walletConnected, walletAddress } = useProfileGate();
   const { connectWallet, isLoading } = useWallet();
+  const { openConnectModal } = useConnectModal();
   const pathname = usePathname();
   const isProfilePage = pathname === "/settings/profile";
 
@@ -59,7 +77,7 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
         <h1 className="text-2xl md:text-3xl font-bold mb-3 tracking-tight">Welcome to Mintellect</h1>
         <p className="mb-2 text-lg font-normal text-gray-200">Connect your wallet to use Mintellect.</p>
         <button
-          onClick={connectWallet}
+          onClick={isMobileDevice() ? openConnectModal : connectWallet}
           disabled={isLoading}
           className="flex items-center gap-2 w-full max-w-[220px] justify-center px-4 py-1.5 rounded-full border border-mintellect-primary shadow-sm bg-mintellect-primary text-white hover:bg-mintellect-primary/80 transition font-medium text-base"
         >

@@ -8,12 +8,13 @@ import { RippleButton } from "@/components/ui/ripple-button"
 import { GlassCard } from "@/components/ui/glass-card"
 import { AnimatedLogo } from "@/components/ui/animated-logo"
 import { Upload, ArrowRight, FileText, Clock, CheckCircle, AlertCircle, Play, Shield, Target } from "lucide-react"
-import { ethers } from "ethers"
-import contractABI from "@/lib/MintellectNFT_ABI.json"
+import { useAccount, useContractRead } from 'wagmi';
+import { createPublicClient, http } from 'viem';
+import contractABI from "@/lib/MintellectNFT_ABI.json";
 import { useWallet } from "@/components/wallet-provider"
 import { workflowPersistence } from "@/lib/workflow-persistence"
 
-const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004"
+const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004";
 
 interface RecentActivity {
   id: string
@@ -32,7 +33,37 @@ export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState("")
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
   const [activityLoading, setActivityLoading] = useState(false)
-  const { walletAddress } = useWallet();
+  const { address } = useAccount();
+  // Only use the hook at the top level for static values
+  const { data: total } = useContractRead({
+    address: CONTRACT_ADDRESS,
+    abi: contractABI,
+    functionName: 'tokenCounter',
+    watch: true,
+  });
+
+  // Set up a viem public client for contract reads
+  const publicClient = createPublicClient({
+    chain: {
+      id: 656476,
+      name: 'Educhain Testnet',
+      network: 'educhain',
+      nativeCurrency: {
+        decimals: 18,
+        name: 'EDU',
+        symbol: 'EDU',
+      },
+      rpcUrls: {
+        default: { http: ['https://rpc.open-campus-codex.gelato.digital'] },
+        public: { http: ['https://rpc.open-campus-codex.gelato.digital'] },
+      },
+      blockExplorers: {
+        default: { name: 'Blockscout', url: 'https://edu-chain-testnet.blockscout.com' },
+      },
+      testnet: true,
+    },
+    transport: http('https://rpc.open-campus-codex.gelato.digital'),
+  });
 
   useEffect(() => {
     setIsLoaded(true)
@@ -95,41 +126,44 @@ export default function Dashboard() {
           console.error('Failed to fetch archived workflows:', error)
         }
 
-        // 3. Get recent NFTs (keep existing functionality)
-        try {
-          if ((window as any).ethereum) {
-            const provider = new ethers.BrowserProvider((window as any).ethereum)
-            const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider)
-            const total = await contract.tokenCounter()
-            const accounts = await provider.send("eth_accounts", [])
-            const currentAddress = accounts[0]?.toLowerCase()
-            
-            for (let i = Number(total) - 1; i >= 0 && activities.length < 6; i--) {
-              try {
-                const tokenId = i.toString()
-                const tokenURI = await contract.tokenURI(tokenId)
-                const owner = (await contract.ownerOf(tokenId)).toLowerCase()
-                if (owner !== currentAddress) continue
-                const ipfsUrl = tokenURI.startsWith("ipfs://")
-                  ? `https://gateway.pinata.cloud/ipfs/${tokenURI.replace("ipfs://", "")}`
-                  : tokenURI
-                const metaRes = await fetch(ipfsUrl)
-                const meta = await metaRes.json()
-                activities.push({
-                  id: `nft-${tokenId}`,
-                  type: 'nft',
-                  title: meta.name || "Untitled Document",
-                  status: 'minted',
-                  date: meta.timestamp ? new Date(meta.timestamp).toLocaleDateString() : "-",
-                  description: "NFT Certificate minted",
-                  actionUrl: `/certificates/${tokenId}`,
-                  icon: <Target className="h-4 w-4" />
-                })
-              } catch {}
-            }
+        // 3. Get recent NFTs
+        if (address && total) {
+          for (let i = Number(total) - 1; i >= 0 && activities.length < 6; i--) {
+            try {
+              const tokenId = BigInt(i);
+              // Use viem for contract reads
+              const [tokenURI, owner] = await Promise.all([
+                publicClient.readContract({
+                  address: CONTRACT_ADDRESS,
+                  abi: contractABI,
+                  functionName: 'tokenURI',
+                  args: [tokenId],
+                }),
+                publicClient.readContract({
+                  address: CONTRACT_ADDRESS,
+                  abi: contractABI,
+                  functionName: 'ownerOf',
+                  args: [tokenId],
+                }),
+              ]);
+              if (owner.toLowerCase() !== address.toLowerCase()) continue;
+              const ipfsUrl = tokenURI.startsWith("ipfs://")
+                ? `https://gateway.pinata.cloud/ipfs/${tokenURI.replace("ipfs://", "")}`
+                : tokenURI;
+              const metaRes = await fetch(ipfsUrl);
+              const meta = await metaRes.json();
+              activities.push({
+                id: `nft-${tokenId}`,
+                type: 'nft',
+                title: meta.name || "Untitled Document",
+                status: 'minted',
+                date: meta.timestamp ? new Date(meta.timestamp).toLocaleDateString() : "-",
+                description: "NFT Certificate minted",
+                actionUrl: `/certificates/${tokenId}`,
+                icon: <Target className="h-4 w-4" />
+              });
+            } catch {}
           }
-        } catch (error) {
-          console.error('Failed to fetch NFTs:', error)
         }
 
         // Sort by date (most recent first)
@@ -143,7 +177,7 @@ export default function Dashboard() {
       setActivityLoading(false)
     }
     fetchRecentActivities()
-  }, [walletAddress])
+  }, [address, total])
 
   const getWorkflowStatus = (workflow: any) => {
     if (!workflow) return 'unknown'

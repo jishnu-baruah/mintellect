@@ -11,8 +11,9 @@ const fetcher = (url: string, walletAddress: string) =>
 export function useProfileChecklist() {
   const { walletAddress, walletConnected } = useWallet();
   const shouldFetch = walletConnected && walletAddress;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
   const { data, error, isLoading } = useSWR(
-    shouldFetch ? [`http://localhost:5000/settings/profile/requirements`, walletAddress] : null,
+    shouldFetch ? [`${API_URL}/settings/profile/requirements`, walletAddress] : null,
     ([url, wallet]) => fetcher(url, wallet),
     { revalidateOnFocus: false }
   );
@@ -31,8 +32,9 @@ export function useProfileChecklist() {
 export function useProfileStatus() {
   const { walletAddress, walletConnected } = useWallet();
   const shouldFetch = walletConnected && walletAddress;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
   const swr = useSWR(
-    shouldFetch ? [`http://localhost:5000/settings/profile/profile?wallet=${walletAddress}`, walletAddress] : null,
+    shouldFetch ? [`${API_URL}/settings/profile/profile?wallet=${walletAddress}`, walletAddress] : null,
     ([url]) => fetch(url).then(res => res.json()),
     { revalidateOnFocus: false }
   );

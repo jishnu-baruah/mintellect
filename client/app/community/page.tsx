@@ -30,7 +30,7 @@ import { PaperFilters } from "@/components/paper-filters"
 import { Navbar } from "@/components/navbar"
 import Link from "next/link"
 import { useWallet } from "@/components/wallet-provider"
-import { ethers } from "ethers"
+import { useAccount, useContractRead } from 'wagmi';
 import contractABI from "@/lib/MintellectNFT_ABI.json"
 
 const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004"
@@ -579,21 +579,37 @@ export default function CommunityPage() {
   const [papers, setPapers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const { isConnected } = useWallet()
+  const { address } = useAccount();
+
+  // Read tokenCounter
+  const { data: total, isLoading: isTotalLoading } = useContractRead({
+    address: CONTRACT_ADDRESS,
+    abi: contractABI,
+    functionName: 'tokenCounter',
+    watch: true,
+  });
 
   useEffect(() => {
     const fetchNFTs = async () => {
       setLoading(true)
       try {
-        if (!(window as any).ethereum) return
-        const provider = new ethers.BrowserProvider((window as any).ethereum)
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider)
-        const total = await contract.tokenCounter()
+        if (!address) return
         const nfts: any[] = []
         for (let i = 0; i < Number(total); i++) {
           try {
             const tokenId = i.toString()
-            const tokenURI = await contract.tokenURI(tokenId)
-            const owner = await contract.ownerOf(tokenId)
+            const tokenURI = await useContractRead({
+              address: CONTRACT_ADDRESS,
+              abi: contractABI,
+              functionName: 'tokenURI',
+              args: [tokenId],
+            })
+            const owner = await useContractRead({
+              address: CONTRACT_ADDRESS,
+              abi: contractABI,
+              functionName: 'ownerOf',
+              args: [tokenId],
+            })
             const ipfsUrl = tokenURI.startsWith("ipfs://")
               ? `https://gateway.pinata.cloud/ipfs/${tokenURI.replace("ipfs://", "")}`
               : tokenURI
@@ -625,7 +641,7 @@ export default function CommunityPage() {
       }
     }
     fetchNFTs()
-  }, [])
+  }, [address, total])
 
   // Toggle researcher/general user view
   const toggleUserRole = () => {

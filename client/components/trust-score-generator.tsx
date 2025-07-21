@@ -82,6 +82,9 @@ export function TrustScoreGenerator({ documentId, documentText, plagiarismResult
   const [showDetails, setShowDetails] = useState(false)
   const { toast } = useToast()
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+  const PLAGIARISM_API_URL = process.env.NEXT_PUBLIC_PLAGIARISM_API_URL || '';
+
   // Auto-start analysis when component mounts
   useEffect(() => {
     if (documentId) {
@@ -105,7 +108,7 @@ export function TrustScoreGenerator({ documentId, documentText, plagiarismResult
       }
 
       // Fetch trust score from backend with real data
-      const response = await fetch(`http://localhost:5000/api/trust-score/generate`, {
+      const response = await fetch(`${API_URL}/api/trust-score/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

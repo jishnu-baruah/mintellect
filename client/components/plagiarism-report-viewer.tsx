@@ -79,7 +79,7 @@ export function PlagiarismReportViewer({
       
       setLoadingSources(true)
       try {
-        const response = await fetch(`http://localhost:8000/reports/sources/${parsedData.reportId}`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_PLAGIARISM_API_URL}/reports/sources/${parsedData.reportId}`)
         if (response.ok) {
           const data = await response.json()
           if (data.data?.sources) {
@@ -203,7 +203,7 @@ export function PlagiarismReportViewer({
       };
 
       // Call server-side PDF generation endpoint (S3 approach)
-      const response = await fetch('http://localhost:5000/api/pdf/generate-plagiarism-report-s3', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf/generate-plagiarism-report-s3`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -6,9 +6,8 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { RippleButton } from "@/components/ui/ripple-button"
 import { Shield, Search, Filter, ExternalLink } from "lucide-react"
 import Link from "next/link"
-import { ethers } from "ethers"
+import { useAccount, useContractRead } from 'wagmi';
 import contractABI from "@/lib/MintellectNFT_ABI.json"
-import { useWallet } from "@/components/wallet-provider"
 
 const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004"
 
@@ -28,26 +27,39 @@ export default function NFTGalleryPage() {
   const [certificates, setCertificates] = useState<NFTCertificate[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { walletAddress } = useWallet();
+  const { address } = useAccount();
+
+  // Read tokenCounter
+  const { data: total, isLoading: isTotalLoading } = useContractRead({
+    address: CONTRACT_ADDRESS,
+    abi: contractABI,
+    functionName: 'tokenCounter',
+    watch: true,
+  });
 
   useEffect(() => {
     const fetchNFTs = async () => {
       setLoading(true)
       setError(null)
       try {
-        if (!(window as any).ethereum) throw new Error("MetaMask not found")
-        const provider = new ethers.BrowserProvider((window as any).ethereum)
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider)
-        const total = await contract.tokenCounter()
-        const accounts = await provider.send("eth_accounts", [])
-        const currentAddress = accounts[0]?.toLowerCase()
+        if (!address) throw new Error("Wallet not connected")
         const nfts: NFTCertificate[] = []
         for (let i = 0; i < Number(total); i++) {
           try {
             const tokenId = i.toString()
-            const tokenURI = await contract.tokenURI(tokenId)
-            const owner = (await contract.ownerOf(tokenId)).toLowerCase()
-            if (owner !== currentAddress) continue
+            const tokenURI = await useContractRead({
+              address: CONTRACT_ADDRESS,
+              abi: contractABI,
+              functionName: 'tokenURI',
+              args: [tokenId],
+            })
+            const owner = await useContractRead({
+              address: CONTRACT_ADDRESS,
+              abi: contractABI,
+              functionName: 'ownerOf',
+              args: [tokenId],
+            })
+            if (owner.toLowerCase() !== address.toLowerCase()) continue
             // Fetch metadata from IPFS
             const ipfsUrl = tokenURI.startsWith("ipfs://")
               ? `https://gateway.pinata.cloud/ipfs/${tokenURI.replace("ipfs://", "")}`
@@ -75,7 +87,7 @@ export default function NFTGalleryPage() {
       }
     }
     fetchNFTs()
-  }, [walletAddress])
+  }, [address, total])
 
   const filteredCertificates = certificates.filter((cert) => {
     const matchesSearch =

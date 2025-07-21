@@ -7,7 +7,7 @@ import { RippleButton } from "./ui/ripple-button"
 import { FileText, Check, Clock, Share2, Download, ExternalLink, Copy, Shield } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { uploadMetadata } from "../lib/utils";
-import { ethers } from "ethers";
+import { useAccount, usePrepareContractWrite, useContractWrite, useWaitForTransaction } from 'wagmi';
 import contractABI from "../lib/MintellectNFT_ABI.json";
 
 interface NFTMintingProps {
@@ -31,9 +31,31 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
     certificateUrl: string
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
-
+  const { address } = useAccount();
   const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004";
+  const [ipfsUrl, setIpfsUrl] = useState<string | null>(null);
+  const [mintArgs, setMintArgs] = useState<[string, string] | null>(null);
 
+  // Prepare contract write
+  const { config, error: prepareError } = usePrepareContractWrite({
+    address: CONTRACT_ADDRESS,
+    abi: contractABI,
+    functionName: 'mintNFT',
+    args: mintArgs || undefined,
+    enabled: !!mintArgs,
+  });
+  const { write, data: txData, isLoading: isWriting, isSuccess: isWriteSuccess, error: writeError } = useContractWrite(config);
+  const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransaction({
+    hash: txData?.hash,
+    enabled: !!txData?.hash,
+    onSuccess: () => {
+      setStatus("complete");
+      setProgress(100);
+      if (onComplete) onComplete();
+    },
+  });
+
+  // Mint handler
   const handleMint = async () => {
     setStatus("minting");
     setProgress(10);
@@ -49,60 +71,16 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
       setProgress(30);
       // 2. Upload to Pinata
       const ipfsUrl = await uploadMetadata(metadata);
+      setIpfsUrl(ipfsUrl);
       setProgress(60);
-      // 3. Interact with contract via MetaMask
-      if (!(window as any).ethereum) throw new Error("MetaMask not found");
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
-      const tx = await contract.mintNFT(await signer.getAddress(), ipfsUrl);
+      // 3. Prepare mint args
+      if (!address) throw new Error("Wallet not connected");
+      setMintArgs([address, ipfsUrl]);
       setProgress(80);
-      const receipt = await tx.wait();
-      // Find the tokenId from the event logs
-      let tokenId = null;
-      if (receipt && receipt.logs && receipt.logs.length > 0) {
-        const iface = new ethers.Interface(contractABI);
-        for (const log of receipt.logs) {
-          try {
-            const parsed = iface.parseLog(log);
-            if (parsed && parsed.name === "Transfer") {
-              tokenId = parsed.args.tokenId.toString();
-              break;
-            }
-          } catch {}
-        }
-      }
-      setNftData({
-        tokenId: tokenId || "?",
-        transactionHash: tx.hash,
-        blockchain: "Educhain Testnet",
-        ipfsUrl,
-        certificateUrl: `/certificates/${tokenId || "?"}`,
-      });
-      setStatus("complete");
-      setProgress(100);
-      if (onComplete) onComplete();
+      // 4. Call write (mintNFT)
+      if (write) write();
     } catch (err: any) {
-      console.error('Minting error:', err);
-      let errorMessage = "Minting failed";
-      
-      if (err.message) {
-        if (err.message.includes('Pinata API keys are missing')) {
-          errorMessage = "Pinata API keys not configured. Using local fallback.";
-        } else if (err.message.includes('Failed to upload to Pinata')) {
-          errorMessage = "IPFS upload failed. Using local metadata.";
-        } else if (err.message.includes('MetaMask not found')) {
-          errorMessage = "MetaMask not found. Please install MetaMask extension.";
-        } else if (err.message.includes('user rejected')) {
-          errorMessage = "Transaction was rejected by user.";
-        } else if (err.message.includes('insufficient funds')) {
-          errorMessage = "Insufficient funds for transaction.";
-        } else {
-          errorMessage = err.message;
-        }
-      }
-      
-      setError(errorMessage);
+      setError(err.message || "Minting failed");
       setStatus("failed");
     }
   };
