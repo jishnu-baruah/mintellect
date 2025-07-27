@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 }
 
 // Toggle this to enable/disable maintenance mode
-const MAINTENANCE_MODE = false;
+const MAINTENANCE_MODE = true;
 
 export default function RootLayout({
   children,
