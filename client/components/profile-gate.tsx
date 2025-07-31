@@ -3,25 +3,15 @@
 import { AnimatedLogo } from "./ui/animated-logo";
 import Link from "next/link";
 import React from "react";
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@/hooks/useWallet";
+import { useProfileStatus } from "@/hooks/useProfileChecklist";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Button } from "./ui/button";
 import { Wallet, Shield } from "lucide-react";
 
 export function useProfileGate() {
-  const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
-  const [checking, setChecking] = useState(true);
-  const { walletConnected, walletAddress } = useWallet();
-
-  useEffect(() => {
-    // For now, assume profile is complete to allow access
-    setProfileComplete(true);
-    setChecking(false);
-  }, []);
-
-  return { profileComplete, checking, walletConnected, walletAddress };
+  return useProfileStatus();
 }
 
 export function ProfileGate({ children }: { children: React.ReactNode }) {
