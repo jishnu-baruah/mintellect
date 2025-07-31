@@ -6,7 +6,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { RippleButton } from "@/components/ui/ripple-button"
 import { Shield, Search, Filter, ExternalLink } from "lucide-react"
 import Link from "next/link"
-import { useAccount, useContractRead } from 'wagmi';
+// import { useAccount, useContractRead } from 'wagmi';
 import contractABI from "@/lib/MintellectNFT_ABI.json"
 
 const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004"
@@ -27,15 +27,18 @@ export default function NFTGalleryPage() {
   const [certificates, setCertificates] = useState<NFTCertificate[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { address } = useAccount();
+  // const { address } = useAccount();
+  const address = '0x0000000000000000000000000000000000000000';
 
   // Read tokenCounter
-  const { data: total, isLoading: isTotalLoading } = useContractRead({
-    address: CONTRACT_ADDRESS,
-    abi: contractABI,
-    functionName: 'tokenCounter',
-    watch: true,
-  });
+  // const { data: total, isLoading: isTotalLoading } = useContractRead({
+  //   address: CONTRACT_ADDRESS,
+  //   abi: contractABI,
+  //   functionName: 'tokenCounter',
+  //   watch: true,
+  // });
+  const total = 0;
+  const isTotalLoading = false;
 
   useEffect(() => {
     const fetchNFTs = async () => {

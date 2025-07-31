@@ -264,7 +264,7 @@ export default function WorkflowPage() {
     
     const poll = async () => {
       try {
-        const response = await fetch(`${PLAGIARISM_API_URL}/status/${reportId}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_PLAGIARISM_API_URL}/status/${reportId}`);
         if (!response.ok) throw new Error(`Status check failed: ${response.status}`);
         const data = await response.json();
         
@@ -273,7 +273,7 @@ export default function WorkflowPage() {
         if (data.data.status === 2 || data.data.status_label === 'checked') {
           // Report is complete
           console.log('Report completed, fetching final results');
-          const finalResponse = await fetch(`${PLAGIARISM_API_URL}/report/${reportId}`);
+          const finalResponse = await fetch(`${process.env.NEXT_PUBLIC_PLAGIARISM_API_URL}/report/${reportId}`);
           if (finalResponse.ok) {
             const finalData = await finalResponse.json();
             console.log('Final report data:', finalData);
@@ -281,7 +281,7 @@ export default function WorkflowPage() {
             
             // Fetch HTML report
             try {
-              const htmlRes = await fetch(`${PLAGIARISM_API_URL}/reports/html/${reportId}`);
+              const htmlRes = await fetch(`${process.env.NEXT_PUBLIC_PLAGIARISM_API_URL}/reports/html/${reportId}`);
               if (htmlRes.ok) {
                 const htmlData = await htmlRes.json();
                 setPlagiarismResult((prev: any) => ({
@@ -327,7 +327,7 @@ export default function WorkflowPage() {
       const formData = new FormData();
       formData.append('text', documentText);
       formData.append('title', documentName || 'Document.txt');
-      const response = await fetch(`${PLAGIARISM_API_URL}/check`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_PLAGIARISM_API_URL}/check`, {
         method: 'POST',
         body: formData,
       });
@@ -355,7 +355,7 @@ export default function WorkflowPage() {
         // If we have a report ID, fetch the HTML report
         if (data.data.id) {
           try {
-            const htmlRes = await fetch(`${PLAGIARISM_API_URL}/reports/html/${data.data.id}`);
+            const htmlRes = await fetch(`${process.env.NEXT_PUBLIC_PLAGIARISM_API_URL}/reports/html/${data.data.id}`);
             if (htmlRes.ok) {
               const htmlData = await htmlRes.json();
               console.log('HTML Report Response:', htmlData);

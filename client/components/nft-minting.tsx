@@ -32,7 +32,7 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { address } = useAccount();
-  const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004";
+  const CONTRACT_ADDRESS = "0x85ab510c1d219e207916a8c8a36a33ce56f3ef6e"; // Educhain contract
   const [ipfsUrl, setIpfsUrl] = useState<string | null>(null);
   const [mintArgs, setMintArgs] = useState<[string, string] | null>(null);
 

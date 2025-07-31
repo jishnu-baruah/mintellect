@@ -1,143 +1,273 @@
 "use client"
 
-import Link from "next/link"
 import { useState } from "react"
-import { Menu, X, Wallet } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { usePathname } from "next/navigation"
-import { useWallet } from "./wallet-provider"
-import { AnimatedLogo } from "./ui/animated-logo"
+import { Button } from "@/components/ui/button"
+import { useWallet } from "@/hooks/useWallet"
+import { WalletConnectButton } from "@/components/wallet-connect-button"
+import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { Menu, X, Wallet, User, Settings, LogOut } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useRouter } from "next/navigation"
 
 export function Navbar() {
-  const [isOpen, setIsOpen] = useState(false)
-  const pathname = usePathname()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { walletConnected, walletAddress, disconnectWallet } = useWallet()
+  const router = useRouter()
 
-  // Get wallet state from context
-  const { walletConnected, walletAddress, connectWallet, disconnectWallet } = useWallet()
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
 
-  // Check if we're on a dashboard page
-  const isDashboardPage = pathname.startsWith("/dashboard")
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen)
+  const handleDisconnect = () => {
+    disconnectWallet()
+    setIsMenuOpen(false)
   }
 
-  const closeMenu = () => {
-    setIsOpen(false)
+  const handleProfile = () => {
+    router.push("/settings/profile")
+    setIsMenuOpen(false)
+  }
+
+  const handleSettings = () => {
+    router.push("/settings")
+    setIsMenuOpen(false)
   }
 
   return (
-    <div className="bg-black/80 backdrop-blur-md border-b border-blue-900/30 py-3">
-      <div className="container mx-auto px-4 flex items-center justify-between">
-        {/* Left side - Mintellect logo and heading */}
-        <Link href="/dashboard" className="flex items-center gap-2 align-middle">
-          <AnimatedLogo className="mr-2 align-middle" size="small" />
-          <span className="text-xl font-bold text-white align-middle leading-none">Mintellect</span>
-        </Link>
-
-        {/* Right side - Wallet, Discord, X */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={walletConnected ? disconnectWallet : connectWallet}
-            className={cn(
-              "hidden md:flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors",
-              walletConnected
-                ? "bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
-                : "bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30",
-            )}
-          >
-            <Wallet className="w-4 h-4" />
-            {walletConnected ? (
-              <span className="flex items-center gap-1 text-green-400 font-semibold">
-                Wallet Connected
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse ml-1"></span>
-              </span>
-            ) : (
-              <span>Connect Wallet</span>
-            )}
-          </button>
-          <nav className="hidden md:flex items-center space-x-5">
-            <Link
-              href="https://t.me/mintellect_community"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={{ transform: 'translate(1px, 4px)' }}>
-                <path d="M21.05 2.927a2.25 2.25 0 0 0-2.37-.37L3.36 9.37c-1.49.522-1.471 1.27-.254 1.611l4.624 1.444 10.74-6.77c.505-.327.968-.146.588.181l-8.2 7.01 3.36 2.45 2.676-2.56 5.547 4.047c1.016.561 1.74.266 1.992-.941l3.613-16.84c.33-1.527-.553-2.127-1.54-1.792z" stroke="currentColor" fill="none"/>
-              </svg>
-            </Link>
-            <Link
-              href="https://x.com/_Mintellect_"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-            </Link>
-          </nav>
-          {/* Mobile menu button */}
-          <button
-            onClick={toggleMenu}
-            className="md:hidden p-2 rounded-md text-gray-400 hover:text-white transition-colors"
-          >
-            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
-      </div>
-      {/* Mobile menu */}
-      {isOpen && (
-        <div className="md:hidden bg-black/90 border-b border-blue-900/30">
-          <div className="container mx-auto px-4 py-4">
-            {/* Mobile Connect Wallet Button */}
-            <button
-              onClick={walletConnected ? disconnectWallet : connectWallet}
-              className={cn(
-                "w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium mb-4",
-                walletConnected
-                  ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                  : "bg-blue-600/20 text-blue-400 border border-blue-500/30",
-              )}
-            >
-              <Wallet className="w-4 h-4" />
-              {walletConnected ? (
-                <span className="flex items-center gap-1 text-green-400 font-semibold">
-                  Wallet Connected
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse ml-1"></span>
-                </span>
-              ) : (
-                <span>Connect Wallet</span>
-              )}
-            </button>
-            <div className="flex justify-center space-x-6 pt-2">
-              <Link
-                href="https://t.me/mintellect_community"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-white transition-colors"
-                onClick={closeMenu}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M21.05 2.927a2.25 2.25 0 0 0-2.37-.37L3.36 9.37c-1.49.522-1.471 1.27-.254 1.611l4.624 1.444 10.74-6.77c.505-.327.968-.146.588.181l-8.2 7.01 3.36 2.45 2.676-2.56 5.547 4.047c1.016.561 1.74.266 1.992-.941l3.613-16.84c.33-1.527-.553-2.127-1.54-1.792z"/>
-                </svg>
-              </Link>
-              <Link
-                href="https://x.com/_Mintellect_"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-white transition-colors"
-                onClick={closeMenu}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-              </Link>
+    <nav className="bg-black/20 backdrop-blur-md border-b border-gray-800/50 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo and Brand */}
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">M</span>
+              </div>
             </div>
+            <div className="ml-3">
+              <h1 className="text-white font-semibold text-lg">Mintellect</h1>
+            </div>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-4">
+            {/* Wallet Connection */}
+            <ConnectButton.Custom>
+              {({
+                account,
+                chain,
+                openAccountModal,
+                openChainModal,
+                openConnectModal,
+                authenticationStatus,
+                mounted,
+              }) => {
+                const ready = mounted && authenticationStatus !== 'loading';
+                const connected =
+                  ready &&
+                  account &&
+                  chain &&
+                  (!authenticationStatus ||
+                    authenticationStatus === 'authenticated');
+
+                return (
+                  <div
+                    {...(!ready && {
+                      'aria-hidden': true,
+                      'style': {
+                        opacity: 0,
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                      },
+                    })}
+                  >
+                    {(() => {
+                      if (!connected) {
+                        return (
+                          <Button
+                            onClick={openConnectModal}
+                            variant="outline"
+                            size="sm"
+                            className="bg-transparent border-gray-600 hover:bg-gray-800"
+                          >
+                            <Wallet className="w-4 h-4 mr-2" />
+                            Connect Wallet
+                          </Button>
+                        );
+                      }
+
+                      return (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="bg-transparent border-gray-600 hover:bg-gray-800"
+                            >
+                              <Wallet className="w-4 h-4 mr-2" />
+                              {account.displayName}
+                              {account.displayBalance
+                                ? ` (${account.displayBalance})`
+                                : ''}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={openAccountModal}>
+                              <User className="w-4 h-4 mr-2" />
+                              Account
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={openChainModal}>
+                              <Settings className="w-4 h-4 mr-2" />
+                              Switch Network
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleProfile}>
+                              <User className="w-4 h-4 mr-2" />
+                              Profile Settings
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleSettings}>
+                              <Settings className="w-4 h-4 mr-2" />
+                              App Settings
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleDisconnect}>
+                              <LogOut className="w-4 h-4 mr-2" />
+                              Disconnect
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    })()}
+                  </div>
+                );
+              }}
+            </ConnectButton.Custom>
+          </div>
+
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <Button
+            onClick={toggleMenu}
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-gray-800"
+            >
+              {isMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden">
+            <div className="px-2 pt-2 pb-3 space-y-1 bg-black/50 backdrop-blur-md rounded-lg mt-2">
+              <ConnectButton.Custom>
+                {({
+                  account,
+                  chain,
+                  openAccountModal,
+                  openChainModal,
+                  openConnectModal,
+                  authenticationStatus,
+                  mounted,
+                }) => {
+                  const ready = mounted && authenticationStatus !== 'loading';
+                  const connected =
+                    ready &&
+                    account &&
+                    chain &&
+                    (!authenticationStatus ||
+                      authenticationStatus === 'authenticated');
+
+                  return (
+                    <div
+                      {...(!ready && {
+                        'aria-hidden': true,
+                        'style': {
+                          opacity: 0,
+                          pointerEvents: 'none',
+                          userSelect: 'none',
+                        },
+                      })}
+                    >
+                      {(() => {
+                        if (!connected) {
+                          return (
+                            <Button
+                              onClick={openConnectModal}
+                              variant="outline"
+                              className="w-full bg-transparent border-gray-600 hover:bg-gray-800"
+                            >
+                              <Wallet className="w-4 h-4 mr-2" />
+                              Connect Wallet
+                            </Button>
+                          );
+                        }
+
+                        return (
+                          <div className="space-y-2">
+                            <Button
+                              onClick={openAccountModal}
+                              variant="outline"
+                              className="w-full bg-transparent border-gray-600 hover:bg-gray-800"
+                            >
+                              <Wallet className="w-4 h-4 mr-2" />
+                              {account.displayName}
+                              {account.displayBalance
+                                ? ` (${account.displayBalance})`
+                                : ''}
+                            </Button>
+                            <Button
+                              onClick={openChainModal}
+                              variant="outline"
+                              className="w-full bg-transparent border-gray-600 hover:bg-gray-800"
+                            >
+                              <Settings className="w-4 h-4 mr-2" />
+                              Switch Network
+                            </Button>
+                            <Button
+                              onClick={handleProfile}
+                              variant="outline"
+                              className="w-full bg-transparent border-gray-600 hover:bg-gray-800"
+                            >
+                              <User className="w-4 h-4 mr-2" />
+                              Profile Settings
+                            </Button>
+                            <Button
+                              onClick={handleSettings}
+                              variant="outline"
+                              className="w-full bg-transparent border-gray-600 hover:bg-gray-800"
+                            >
+                              <Settings className="w-4 h-4 mr-2" />
+                              App Settings
+                            </Button>
+                            <Button
+                              onClick={handleDisconnect}
+                              variant="outline"
+                              className="w-full bg-transparent border-gray-600 hover:bg-gray-800"
+                            >
+                              <LogOut className="w-4 h-4 mr-2" />
+                              Disconnect
+                            </Button>
+                          </div>
+                        );
+                      })()}
+            </div>
+                  );
+                }}
+              </ConnectButton.Custom>
           </div>
         </div>
       )}
     </div>
+    </nav>
   )
 }

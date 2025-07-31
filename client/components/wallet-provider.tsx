@@ -39,10 +39,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Compose loading state
   const isLoading = isConnecting || isReconnecting;
 
-  // Compose error state
+  // Compose error state with better error handling
   useEffect(() => {
-    if (connectError) setError(connectError.message);
-    else setError(null);
+    if (connectError) {
+      // Handle specific Coinbase errors
+      if (connectError.message.includes('coinbase') || connectError.message.includes('401')) {
+        setError('Coinbase wallet connection failed. Please try using MetaMask or another wallet.');
+      } else if (connectError.message.includes('User rejected')) {
+        setError('Connection was cancelled. Please try again.');
+      } else if (connectError.message.includes('No wallet found')) {
+        setError('No wallet detected. Please install MetaMask or another wallet extension.');
+      } else {
+        setError(connectError.message);
+      }
+    } else {
+      setError(null);
+    }
   }, [connectError]);
 
   // Detect if no injected provider and on mobile
@@ -55,7 +67,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Connect wallet handler (uses the first available connector)
+  // Connect wallet handler with improved error handling
   const connectWallet = async () => {
     setError(null);
     try {
@@ -63,15 +75,33 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setError('No wallet connectors available');
         return;
       }
+      
+      // Try to connect with the first available connector
       await connect({ connector: connectors[0] });
     } catch (err: any) {
-      setError(err?.message || 'Failed to connect wallet');
+      console.error('Wallet connection error:', err);
+      
+      // Handle specific error types
+      if (err?.message?.includes('coinbase') || err?.message?.includes('401')) {
+        setError('Coinbase wallet connection failed. Please try using MetaMask or another wallet.');
+      } else if (err?.message?.includes('User rejected')) {
+        setError('Connection was cancelled. Please try again.');
+      } else if (err?.message?.includes('No wallet found')) {
+        setError('No wallet detected. Please install MetaMask or another wallet extension.');
+      } else {
+        setError(err?.message || 'Failed to connect wallet. Please try again.');
+      }
     }
   };
 
   // Disconnect wallet handler
   const disconnectWallet = () => {
-    disconnect();
+    try {
+      disconnect();
+      setError(null);
+    } catch (err: any) {
+      console.error('Wallet disconnect error:', err);
+    }
   };
 
   return (

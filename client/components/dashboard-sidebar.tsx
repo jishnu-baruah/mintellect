@@ -6,12 +6,11 @@ import { cn } from "@/lib/utils"
 import { FileText, Shield, BarChart2, Award, Users, Settings, ChevronLeft, ChevronRight, User, Lock, Bell, CreditCard, Wallet } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import { AnimatedLogo } from "./ui/animated-logo"
-import { useWallet } from "./wallet-provider"
 import ReactDOM from "react-dom";
 import { useIsMobile } from "@/components/ui/use-mobile";
 import React from "react";
 import { useRouter } from "next/navigation"
-import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useWallet } from "@/hooks/useWallet"
 
 // Minimal portal-based tooltip for sidebar
 function SidebarTooltip({ children, label }: { children: React.ReactNode, label: string }) {
@@ -70,7 +69,6 @@ export function DashboardSidebar({ className }: { className?: string }) {
   const { walletConnected, connectWallet, disconnectWallet } = useWallet()
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
-  const { openConnectModal } = useConnectModal();
 
   // Expand sidebar if not mobile on mount
   useEffect(() => {
@@ -132,7 +130,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
   };
 
   if (isMobile) {
-  return (
+    return (
       <aside
         className="fixed top-0 left-0 z-40 h-screen w-16 bg-black flex flex-col items-center py-4 gap-4 border-r border-gray-800"
       >
@@ -142,12 +140,12 @@ export function DashboardSidebar({ className }: { className?: string }) {
         </div>
         {/* Navigation icons */}
         <nav className="flex flex-col items-center gap-4 flex-1 mt-2">
-        {navItems.map((item, idx) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => handleNavClick(item.href)}
-            className={cn(
+          {navItems.map((item, idx) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => handleNavClick(item.href)}
+              className={cn(
                 `flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 hover:bg-[#23262F]`,
                 pathname === item.href ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300",
               )}
@@ -182,9 +180,9 @@ export function DashboardSidebar({ className }: { className?: string }) {
         {/* Bottom section (wallet/socials) */}
         <div className="flex flex-col items-center gap-2 mt-auto mb-2">
           <button
-            onClick={walletConnected ? disconnectWallet : (isMobile ? openConnectModal : connectWallet)}
+            onClick={walletConnected ? disconnectWallet : connectWallet}
             className={cn(
-              "w-12 h-12 flex items-center justify-center rounded-xl border text-xs font-semibold transition-colors",
+              "w-12 h-12 flex items-center justify-center rounded-xl border transition-colors",
               walletConnected
                 ? "bg-green-500/10 text-green-400 border-green-500/30 hover:bg-green-500/20 border"
                 : "bg-blue-600/10 text-blue-400 border-blue-500/30 hover:bg-blue-600/20 border",
@@ -271,17 +269,17 @@ export function DashboardSidebar({ className }: { className?: string }) {
                     onClick={() => handleNavClick(item.href)}
                     className={cn(
                       `group flex items-center py-2 rounded-xl transition-all duration-200 hover:bg-[#23262F] items-center w-full justify-start px-3 gap-3`,
-              pathname === item.href ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300",
-            )}
-          >
-            <item.icon className={cn("h-5 w-5", [
-              "text-blue-400",
-              "text-green-400",
-              "text-yellow-400",
-              "text-purple-400",
-              "text-pink-400",
-              "text-gray-400"
-            ][idx % 6])} />
+                      pathname === item.href ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300",
+                    )}
+                  >
+                    <item.icon className={cn("h-5 w-5", [
+                      "text-blue-400",
+                      "text-green-400",
+                      "text-yellow-400",
+                      "text-purple-400",
+                      "text-pink-400",
+                      "text-gray-400"
+                    ][idx % 6])} />
                     <span
                       className={cn(
                         "whitespace-nowrap overflow-hidden transition-all duration-300",
@@ -291,33 +289,33 @@ export function DashboardSidebar({ className }: { className?: string }) {
                     >
                       {item.label}
                     </span>
-          </Link>
+                  </Link>
                 )}
               </React.Fragment>
-        ))}
-        {/* Settings section with sub-menu */}
-        <div className="relative">
+            ))}
+            {/* Settings section with sub-menu */}
+            <div className="relative">
               {collapsedFinal ? (
                 <SidebarTooltip label="Settings">
-          <button
-            className={cn(
+                  <button
+                    className={cn(
                       `group flex items-center py-2 rounded-xl w-full transition-all duration-200 hover:bg-[#23262F] focus:outline-none justify-center px-0 gap-0`,
                       pathname.startsWith("/settings") ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-            )}
-            onClick={() => {
-                if (!isMobile) {
-                setCollapsed(false);
-                }
-                setSettingsOpen(true);
-                if (!pathname.startsWith("/settings")) {
-                  router.push("/settings/profile");
-              }
-            }}
-            aria-expanded={settingsOpen}
-            aria-controls="settings-submenu"
-          >
-            <Settings className="h-5 w-5 text-gray-400 group-hover:text-mintellect-primary" />
-          </button>
+                    )}
+                    onClick={() => {
+                      if (!isMobile) {
+                        setCollapsed(false);
+                      }
+                      setSettingsOpen(true);
+                      if (!pathname.startsWith("/settings")) {
+                        router.push("/settings/profile");
+                      }
+                    }}
+                    aria-expanded={settingsOpen}
+                    aria-controls="settings-submenu"
+                  >
+                    <Settings className="h-5 w-5 text-gray-400 group-hover:text-mintellect-primary" />
+                  </button>
                 </SidebarTooltip>
               ) : (
                 <button
@@ -346,66 +344,66 @@ export function DashboardSidebar({ className }: { className?: string }) {
                   >
                     Settings
                   </span>
-              <ChevronRight
-                className={cn(
-                  "h-4 w-4 ml-auto transition-transform",
-                  settingsOpen ? "rotate-90" : "rotate-0"
-                )}
-              />
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 ml-auto transition-transform",
+                      settingsOpen ? "rotate-90" : "rotate-0"
+                    )}
+                  />
                 </button>
-            )}
-          {/* Sub-menu (expanded sidebar) */}
-          {!collapsedFinal && settingsOpen && (
-            <div id="settings-submenu" className="ml-8 mt-1 space-y-1">
-              <Link href="/settings/profile" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/profile" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><User className="h-4 w-4" />Profile</Link>
-              <Link href="/settings/security" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/security" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Lock className="h-4 w-4" />Security</Link>
-              <Link href="/settings/notifications" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/notifications" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Bell className="h-4 w-4" />Notifications</Link>
-              <Link href="/settings/privacy" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/privacy" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Shield className="h-4 w-4" />Privacy</Link>
-              <Link href="/settings/billing" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/billing" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><CreditCard className="h-4 w-4" />Billing</Link>
-            </div>
-          )}
-          {/* Sub-menu (collapsed sidebar) as floating menu on hover/focus */}
-          {collapsedFinal && settingsOpen && (
+              )}
+              {/* Sub-menu (expanded sidebar) */}
+              {!collapsedFinal && settingsOpen && (
+                <div id="settings-submenu" className="ml-8 mt-1 space-y-1">
+                  <Link href="/settings/profile" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/profile" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><User className="h-4 w-4" />Profile</Link>
+                  <Link href="/settings/security" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/security" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Lock className="h-4 w-4" />Security</Link>
+                  <Link href="/settings/notifications" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/notifications" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Bell className="h-4 w-4" />Notifications</Link>
+                  <Link href="/settings/privacy" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/privacy" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Shield className="h-4 w-4" />Privacy</Link>
+                  <Link href="/settings/billing" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/billing" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><CreditCard className="h-4 w-4" />Billing</Link>
+                </div>
+              )}
+              {/* Sub-menu (collapsed sidebar) as floating menu on hover/focus */}
+              {collapsedFinal && settingsOpen && (
                 <div className="absolute left-full top-0 mt-0 ml-2 w-48 bg-black border rounded-xl shadow-lg z-50 p-2">
-              <Link href="/settings/profile" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/profile" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><User className="h-4 w-4" />Profile</Link>
-              <Link href="/settings/security" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/security" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Lock className="h-4 w-4" />Security</Link>
-              <Link href="/settings/notifications" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/notifications" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Bell className="h-4 w-4" />Notifications</Link>
-              <Link href="/settings/privacy" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/privacy" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><Shield className="h-4 w-4" />Privacy</Link>
-              <Link href="/settings/billing" className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
-                pathname === "/settings/billing" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
-              )}><CreditCard className="h-4 w-4" />Billing</Link>
+                  <Link href="/settings/profile" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/profile" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><User className="h-4 w-4" />Profile</Link>
+                  <Link href="/settings/security" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/security" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Lock className="h-4 w-4" />Security</Link>
+                  <Link href="/settings/notifications" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/notifications" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Bell className="h-4 w-4" />Notifications</Link>
+                  <Link href="/settings/privacy" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/privacy" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><Shield className="h-4 w-4" />Privacy</Link>
+                  <Link href="/settings/billing" className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-[#23262F] transition-colors text-sm",
+                    pathname === "/settings/billing" ? "bg-mintellect-primary/10 text-mintellect-primary font-semibold" : "text-gray-300"
+                  )}><CreditCard className="h-4 w-4" />Billing</Link>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </nav>
+          </nav>
         </div>
       </aside>
       {/* Right divider, always visible, sibling to sidebar */}
@@ -418,7 +416,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
       )}>
         {/* Wallet Connect Button */}
         <button
-          onClick={walletConnected ? disconnectWallet : (isMobile ? openConnectModal : connectWallet)}
+          onClick={walletConnected ? disconnectWallet : connectWallet}
           className={cn(
             "w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors min-w-0",
             walletConnected

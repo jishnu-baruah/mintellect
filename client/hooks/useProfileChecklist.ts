@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import { useWallet } from '@/components/wallet-provider';
+import { useWallet } from '@/hooks/useWallet';
 
 const fetcher = (url: string, walletAddress: string) =>
   fetch(url, { headers: { 'x-wallet': walletAddress } }).then(res => {

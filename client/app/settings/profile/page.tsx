@@ -8,7 +8,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { User, Lock, Bell, Shield, CreditCard } from "lucide-react"
 import { Wallet, Send } from "lucide-react"
-import { useWallet } from "@/components/wallet-provider"
+import { useWallet } from "@/hooks/useWallet"
 
 interface ProfileRequirement {
   key: string;

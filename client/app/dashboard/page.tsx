@@ -8,10 +8,10 @@ import { RippleButton } from "@/components/ui/ripple-button"
 import { GlassCard } from "@/components/ui/glass-card"
 import { AnimatedLogo } from "@/components/ui/animated-logo"
 import { Upload, ArrowRight, FileText, Clock, CheckCircle, AlertCircle, Play, Shield, Target } from "lucide-react"
-import { useAccount, useContractRead } from 'wagmi';
-import { createPublicClient, http } from 'viem';
-import contractABI from "@/lib/MintellectNFT_ABI.json";
-import { useWallet } from "@/components/wallet-provider"
+// import { useAccount, useContractRead } from 'wagmi';
+// import { createPublicClient, http } from 'viem';
+// import contractABI from "@/lib/MintellectNFT_ABI.json";
+// import { useWallet } from "@/hooks/useWallet"
 import { workflowPersistence } from "@/lib/workflow-persistence"
 
 const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004";
@@ -33,37 +33,39 @@ export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState("")
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
   const [activityLoading, setActivityLoading] = useState(false)
-  const { address } = useAccount();
+  // const { address } = useAccount();
+  const address = '0x0000000000000000000000000000000000000000';
   // Only use the hook at the top level for static values
-  const { data: total } = useContractRead({
-    address: CONTRACT_ADDRESS,
-    abi: contractABI,
-    functionName: 'tokenCounter',
-    watch: true,
-  });
+  // const { data: total } = useContractRead({
+  //   address: CONTRACT_ADDRESS,
+  //   abi: contractABI,
+  //   functionName: 'tokenCounter',
+  //   watch: true,
+  // });
+  const total = 0;
 
   // Set up a viem public client for contract reads
-  const publicClient = createPublicClient({
-    chain: {
-      id: 656476,
-      name: 'Educhain Testnet',
-      network: 'educhain',
-      nativeCurrency: {
-        decimals: 18,
-        name: 'EDU',
-        symbol: 'EDU',
-      },
-      rpcUrls: {
-        default: { http: ['https://rpc.open-campus-codex.gelato.digital'] },
-        public: { http: ['https://rpc.open-campus-codex.gelato.digital'] },
-      },
-      blockExplorers: {
-        default: { name: 'Blockscout', url: 'https://edu-chain-testnet.blockscout.com' },
-      },
-      testnet: true,
-    },
-    transport: http('https://rpc.open-campus-codex.gelato.digital'),
-  });
+  // const publicClient = createPublicClient({
+  //   chain: {
+  //     id: 656476,
+  //     name: 'Educhain Testnet',
+  //     network: 'educhain',
+  //     nativeCurrency: {
+  //       decimals: 18,
+  //       name: 'EDU',
+  //       symbol: 'EDU',
+  //     },
+  //     rpcUrls: {
+  //       default: { http: ['https://rpc.open-campus-codex.gelato.digital'] },
+  //       public: { http: ['https://rpc.open-campus-codex.gelato.digital'] },
+  //     },
+  //     blockExplorers: {
+  //       default: { name: 'Blockscout', url: 'https://edu-chain-testnet.blockscout.com' },
+  //     },
+  //     testnet: true,
+  //   },
+  //   transport: http('https://rpc.open-campus-codex.gelato.digital'),
+  // });
 
   useEffect(() => {
     setIsLoaded(true)

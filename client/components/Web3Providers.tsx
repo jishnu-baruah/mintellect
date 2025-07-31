@@ -1,13 +1,14 @@
 "use client";
 
 import { ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { getDefaultWallets, connectorsForWallets, RainbowKitProvider } from "@rainbow-me/rainbowkit";
-import { WagmiConfig, createConfig, http } from "wagmi";
-import { mainnet, type Chain } from "wagmi/chains";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WagmiProvider } from 'wagmi';
+import { RainbowKitProvider, getDefaultWallets } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
+import { createConfig, http } from 'wagmi';
 
-const educhainTestnet: Chain = {
+// Educhain Testnet configuration
+const educhainTestnet = {
   id: 656476,
   name: 'Educhain Testnet',
   network: 'educhain',
@@ -24,36 +25,54 @@ const educhainTestnet: Chain = {
     default: { name: 'Blockscout', url: 'https://edu-chain-testnet.blockscout.com' },
   },
   testnet: true,
-};
+} as const;
 
-export const chains = [mainnet, educhainTestnet];
+// Configure chains for the app - only Educhain
+const chains = [educhainTestnet] as const;
 
+// Set up wagmi config
+const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '609f45d188c096567677077f5b0b4175';
+
+// Get default wallets (includes mobile wallet detection)
 const { connectors } = getDefaultWallets({
   appName: 'Mintellect',
-  projectId: '609f45d188c096567677077f5b0b4175',
-  chains,
+  projectId,
 });
 
-const wagmiConfig = createConfig({
+const config = createConfig({
   chains,
   connectors,
   transports: {
-    [mainnet.id]: http(),
     [educhainTestnet.id]: http('https://rpc.open-campus-codex.gelato.digital'),
   },
-  autoConnect: true,
 });
 
-const queryClient = new QueryClient();
+// Configure query client with better error handling
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      retryDelay: 1000,
+    },
+    mutations: {
+      retry: 1,
+      retryDelay: 1000,
+    },
+  },
+});
 
 export default function Web3Providers({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <WagmiConfig config={wagmiConfig}>
-        <RainbowKitProvider chains={chains}>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider
+          initialChain={educhainTestnet}
+          locale="en-US"
+          modalSize="compact"
+        >
           {children}
         </RainbowKitProvider>
-      </WagmiConfig>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 } 
