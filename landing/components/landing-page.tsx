@@ -646,8 +646,7 @@ section:not(.section-active) {
                       transition={{ duration: 0.8, delay: 0.8 }}
                       style={{ willChange: "transform, opacity" }}
                     >
-                      AI agents verify your research for originality and trust, storing immutable proof on the
-                      blockchain as a dynamic NFT.
+                                             AI verifies your research for originality and trust, recording immutable proof on the blockchain as a dynamic NFT.
                     </motion.p>
 
                     {/* Enhanced CTA button */}
