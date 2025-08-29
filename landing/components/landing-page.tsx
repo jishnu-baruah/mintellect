@@ -34,7 +34,7 @@ const WORKFLOW_STEPS = [
   },
   {
     title: "Analyze",
-    description: "AI checks originality and academic integrity.",
+    description: "AI verifies originality with speed and accuracy.",
     icon: Shield,
   },
   {
@@ -959,9 +959,9 @@ section:not(.section-active) {
                   <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mb-4">
                     <ScrollText className="h-6 w-6 text-blue-400" />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">Autonomous AI Agents</h3>
+                  <h3 className="text-lg font-bold text-white mb-2">Originality Verified</h3>
                   <p className="text-blue-100/70 text-sm">
-                    Smart agents handle every verification layer—fast, unbiased, and scalable.
+                    From plagiarism checks to citation audits, our AI ensures your work stands on trusted ground.
                   </p>
                 </div>
               </motion.div>
