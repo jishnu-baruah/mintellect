@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { useAccount, useNetwork, useSwitchNetwork, useContractRead, usePrepareContractWrite, useContractWrite, useWaitForTransaction } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useChainId, useSwitchChain } from 'wagmi';
 import { parseUnits } from 'viem';
 
 const CONTRACT_ADDRESS = '0x85ab510c1d219e207916a8c8a36a33ce56f3ef6e';
@@ -138,8 +139,8 @@ interface PlagiarismPaymentProps {
 
 export default function PlagiarismPayment({ onPaymentSuccess, onPaymentError }: PlagiarismPaymentProps) {
   const { address, isConnected } = useAccount();
-  const { chain } = useNetwork();
-  const { chains, switchNetwork } = useSwitchNetwork();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
   const [amount, setAmount] = useState('0.000062');
   const [transactionHash, setTransactionHash] = useState('');
   const [transactionStatus, setTransactionStatus] = useState<'pending' | 'success' | 'error' | null>(null);
@@ -147,61 +148,70 @@ export default function PlagiarismPayment({ onPaymentSuccess, onPaymentError }: 
   const [error, setError] = useState('');
 
   // Read balance
-  const { data: balance, refetch: refetchBalance } = useContractRead({
+  const { data: balance, refetch: refetchBalance } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
     functionName: 'getBalance',
     args: address ? [address] : undefined,
-    enabled: !!address,
-    watch: true,
+    query: {
+      enabled: !!address,
+    },
   });
 
-  // Prepare deposit
-  const { config, error: prepareError } = usePrepareContractWrite({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: 'deposit',
-    args: [parseUnits(amount, 18)],
-    enabled: !!address && !!amount,
-  });
-
-  const { write, data: txData, isLoading: isWriting, isSuccess: isWriteSuccess, error: writeError } = useContractWrite(config);
+  // Deposit contract write (updated for new wagmi version)
+  const { writeContract, data: txData, isPending: isWriting, error: writeError } = useWriteContract();
 
   // Wait for transaction
-  const { isLoading: isTxLoading, isSuccess: isTxSuccess, isError: isTxError } = useWaitForTransaction({
-    hash: txData?.hash,
-    enabled: !!txData?.hash,
-    onSuccess: () => {
+  const { isLoading: isTxLoading, isSuccess: isTxSuccess, isError: isTxError } = useWaitForTransactionReceipt({
+    hash: txData,
+  });
+
+  // Handle transaction success
+  useEffect(() => {
+    if (txData && isTxSuccess) {
       setTransactionStatus('success');
-      setTransactionHash(txData?.hash || '');
+      setTransactionHash(txData || '');
       refetchBalance();
       onPaymentSuccess();
-    },
-    onError: () => {
+    }
+  }, [txData, isTxSuccess, refetchBalance, onPaymentSuccess]);
+
+  // Handle transaction error
+  useEffect(() => {
+    if (isTxError) {
       setTransactionStatus('error');
       setError('Transaction failed');
       onPaymentError('Transaction failed');
-    },
-  });
+    }
+  }, [isTxError, onPaymentError]);
 
   // Network switching
   useEffect(() => {
-    if (chain && chain.id !== parseInt(NETWORK_CONFIG.chainId, 16) && switchNetwork) {
-      switchNetwork(parseInt(NETWORK_CONFIG.chainId, 16));
+    if (chainId !== parseInt(NETWORK_CONFIG.chainId, 16)) {
+      switchChain({ chainId: parseInt(NETWORK_CONFIG.chainId, 16) });
     }
-  }, [chain, switchNetwork]);
+  }, [chainId, switchChain]);
 
   // Error handling
   useEffect(() => {
-    if (prepareError) setError(prepareError.message);
-    else if (writeError) setError(writeError.message);
+    if (writeError) setError(writeError.message);
     else setError('');
-  }, [prepareError, writeError]);
+  }, [writeError]);
 
-  const handleBuyTokens = () => {
+  const handleBuyTokens = async () => {
     setTransactionStatus('pending');
     setError('');
-    if (write) write();
+    try {
+      await writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: 'deposit',
+        args: [parseUnits(amount, 18)],
+      });
+    } catch (error) {
+      setTransactionStatus('error');
+      setError('Transaction failed');
+    }
   };
 
   return (
@@ -217,7 +227,7 @@ export default function PlagiarismPayment({ onPaymentSuccess, onPaymentError }: 
       </div>
       <button
         onClick={handleBuyTokens}
-        disabled={isWriting || isTxLoading || !write}
+        disabled={isWriting || isTxLoading}
         className="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-50"
       >
         {isWriting || isTxLoading ? 'Processing...' : 'Buy EDU Token for Plagiarism Check'}

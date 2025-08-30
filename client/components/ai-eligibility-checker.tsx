@@ -28,6 +28,8 @@ interface AIEligibilityCheckerProps {
 
 export function AIEligibilityChecker({ documentId, eligible, error, onComplete }: AIEligibilityCheckerProps) {
   // Show real eligibility result from parent
+  console.log('AIEligibilityChecker props:', { documentId, eligible, error })
+  console.log('Eligible type:', typeof eligible, 'Value:', eligible)
 
   const getScoreColor = (value: number) => {
     if (value >= 80) return "text-green-400"

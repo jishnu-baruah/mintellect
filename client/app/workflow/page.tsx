@@ -27,13 +27,6 @@ export default function WorkflowPage() {
   const [documentFile, setDocumentFile] = useState<File | null>(null)
   const [trustScore, setTrustScore] = useState<number | null>(null)
   const [trustScoreData, setTrustScoreData] = useState<any | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [eligible, setEligible] = useState<boolean | undefined>(undefined);
-  const [documentText, setDocumentText] = useState<string | null>(null);
-  const [plagiarismResult, setPlagiarismResult] = useState<any | null>(null);
-  const [plagiarismLoading, setPlagiarismLoading] = useState(false);
-  const [plagiarismError, setPlagiarismError] = useState<string | null>(null);
   const [humanReviewData, setHumanReviewData] = useState<any | null>(null);
   const [nftMintingData, setNftMintingData] = useState<any | null>(null);
   const [showResumeModal, setShowResumeModal] = useState(false);
@@ -42,6 +35,13 @@ export default function WorkflowPage() {
   const { toast } = useToast();
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [formattedCreatedAt, setFormattedCreatedAt] = useState('');
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [eligible, setEligible] = useState<boolean | undefined>(undefined);
+  const [documentText, setDocumentText] = useState<string | null>(null);
+  const [plagiarismResult, setPlagiarismResult] = useState<any | null>(null);
+  const [plagiarismLoading, setPlagiarismLoading] = useState(false);
+  const [plagiarismError, setPlagiarismError] = useState<string | null>(null);
 
   useEffect(() => {
     const stepParam = searchParams.get("step")

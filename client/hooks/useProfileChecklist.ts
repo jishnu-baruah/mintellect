@@ -1,32 +1,76 @@
-import useSWR from 'swr';
-import { useWallet } from '@/hooks/useWallet';
+import useSWR from 'swr'
+import { useWallet } from '@/hooks/useWallet'
+import { profileSWRConfig } from '@/lib/swr-config'
+import { LocalStorageCache } from '@/lib/cache-manager'
 
-const fetcher = (url: string, walletAddress: string) =>
-  fetch(url, { headers: { 'x-wallet': walletAddress } }).then(res => {
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error('Failed to fetch profile requirements');
-    return res.json();
-  });
+// Local storage key for checklist cache
+const CHECKLIST_CACHE_KEY = 'checklist'
 
 export function useProfileChecklist() {
-  const { walletAddress, walletConnected } = useWallet();
-  const shouldFetch = walletConnected && walletAddress;
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+  const { walletAddress, walletConnected } = useWallet()
+  const shouldFetch = walletConnected && walletAddress
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+  
+  // Get cached checklist data from localStorage
+  const getCachedChecklist = () => {
+    if (typeof window === 'undefined' || !walletAddress) return null
+    
+    const cacheKey = `${CHECKLIST_CACHE_KEY}-${walletAddress}`
+    return LocalStorageCache.get(cacheKey)
+  }
+
+  // Set checklist data in localStorage cache
+  const setCachedChecklist = (data: any) => {
+    if (typeof window === 'undefined' || !walletAddress) return
+    
+    const cacheKey = `${CHECKLIST_CACHE_KEY}-${walletAddress}`
+    LocalStorageCache.set(cacheKey, data)
+  }
+
   const { data, error, isLoading } = useSWR(
     shouldFetch ? [`${API_URL}/settings/profile/requirements`, walletAddress] : null,
-    ([url, wallet]) => fetcher(url, wallet),
-    { revalidateOnFocus: false }
-  );
+    async ([url, wallet]) => {
+      const res = await fetch(url, {
+        headers: { 'x-wallet': wallet }
+      })
+      if (!res.ok) throw new Error('Failed to fetch checklist')
+      const data = await res.json()
+      
+      // Cache the successful response
+      setCachedChecklist(data)
+      return data
+    },
+    {
+      ...profileSWRConfig,
+      // Use cached data as fallback
+      fallback: getCachedChecklist() ? { [`checklist-${walletAddress}`]: getCachedChecklist() } : undefined,
+      // Revalidate on mount only if no cached data
+      revalidateOnMount: !getCachedChecklist(),
+      // Don't revalidate if we have recent cached data
+      revalidateIfStale: !getCachedChecklist(),
+    }
+  )
+
+  const checklistData = data ?? getCachedChecklist() ?? { checklist: [], allComplete: false }
 
   return {
-    checklist: data?.checklist || [],
-    allComplete: data?.allComplete || false,
-    loading: isLoading,
+    checklist: checklistData.checklist || [],
+    allComplete: checklistData.allComplete || false,
+    loading: isLoading && !getCachedChecklist(), // Don't show loading if we have cached data
     error,
-    isNewUser: data === null,
+    isNewUser: data === null && !getCachedChecklist(),
     walletConnected,
-    walletAddress
-  };
+    walletAddress,
+    // Add cache status for debugging
+    isCached: !!getCachedChecklist(),
+    // Force refresh function
+    refresh: () => {
+      const cacheKey = `${CHECKLIST_CACHE_KEY}-${walletAddress}`
+      LocalStorageCache.delete(cacheKey)
+      // Trigger SWR revalidation
+      window.location.reload()
+    }
+  }
 }
 
 export function useProfileStatus() {

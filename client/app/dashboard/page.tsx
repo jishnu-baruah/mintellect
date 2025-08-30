@@ -92,10 +92,12 @@ export default function Dashboard() {
       setActivityLoading(true)
       try {
         const activities: RecentActivity[] = []
+        const seenDocumentIds = new Set<string>()
 
         // 1. Get current workflow
         const currentWorkflow = workflowPersistence.getWorkflowState()
-        if (currentWorkflow) {
+        if (currentWorkflow && currentWorkflow.documentId) {
+          seenDocumentIds.add(currentWorkflow.documentId)
           activities.push({
             id: currentWorkflow.documentId,
             type: 'workflow',
@@ -108,10 +110,22 @@ export default function Dashboard() {
           })
         }
 
-        // 2. Get archived workflows
+        // 2. Get archived workflows (only if not already seen)
         try {
           const archivedWorkflows = await workflowPersistence.getArchivedWorkflows()
           const recentArchives = archivedWorkflows
+            .filter(workflow => {
+              // Skip if we've already seen this document ID
+              if (seenDocumentIds.has(workflow.documentId)) {
+                return false
+              }
+              // Skip if it's the same as current workflow
+              if (currentWorkflow && workflow.documentId === currentWorkflow.documentId) {
+                return false
+              }
+              seenDocumentIds.add(workflow.documentId)
+              return true
+            })
             .slice(0, 3) // Limit to 3 most recent
             .map(workflow => ({
               id: workflow.documentId,
@@ -128,7 +142,7 @@ export default function Dashboard() {
           console.error('Failed to fetch archived workflows:', error)
         }
 
-        // 3. Get recent NFTs
+        // 3. Get recent NFTs (only if not already seen)
         if (address && total) {
           for (let i = Number(total) - 1; i >= 0 && activities.length < 6; i--) {
             try {
@@ -149,11 +163,19 @@ export default function Dashboard() {
                 }),
               ]);
               if (owner.toLowerCase() !== address.toLowerCase()) continue;
+              
               const ipfsUrl = tokenURI.startsWith("ipfs://")
                 ? `https://gateway.pinata.cloud/ipfs/${tokenURI.replace("ipfs://", "")}`
                 : tokenURI;
               const metaRes = await fetch(ipfsUrl);
               const meta = await metaRes.json();
+              
+              // Check if this NFT corresponds to a document we've already seen
+              const nftDocumentId = meta.documentId || meta.workflowId
+              if (nftDocumentId && seenDocumentIds.has(nftDocumentId)) {
+                continue // Skip if we already have this document in activities
+              }
+              
               activities.push({
                 id: `nft-${tokenId}`,
                 type: 'nft',
@@ -171,6 +193,14 @@ export default function Dashboard() {
         // Sort by date (most recent first)
         activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         
+        // Debug logging
+        console.log('Recent Activities Debug:', {
+          currentWorkflow: currentWorkflow?.documentId,
+          seenDocumentIds: Array.from(seenDocumentIds),
+          totalActivities: activities.length,
+          activities: activities.map(a => ({ id: a.id, title: a.title, type: a.type }))
+        })
+        
         // Limit to 6 most recent activities
         setRecentActivities(activities.slice(0, 6))
       } catch (error) {
@@ -183,13 +213,37 @@ export default function Dashboard() {
 
   const getWorkflowStatus = (workflow: any) => {
     if (!workflow) return 'unknown'
-    if (workflow.step === 'completed') return 'completed'
-    if (workflow.step === 'nft-minting') return 'minting'
-    if (workflow.step === 'human-review') return 'review'
-    if (workflow.step === 'trust-score') return 'analyzing'
-    if (workflow.step === 'plagiarism-check') return 'checking'
-    if (workflow.step === 'upload') return 'uploaded'
-    return 'in-progress'
+    
+    // Handle current workflow status
+    if (workflow.step) {
+      if (workflow.step === 'completed') return 'completed'
+      if (workflow.step === 'nft-minting') return 'minting'
+      if (workflow.step === 'human-review') return 'review'
+      if (workflow.step === 'trust-score') return 'analyzing'
+      if (workflow.step === 'plagiarism-check') return 'checking'
+      if (workflow.step === 'upload') return 'uploaded'
+      return 'in-progress'
+    }
+    
+    // Handle archived workflow status
+    if (workflow.status) {
+      if (workflow.status === 'completed' || workflow.status === 'minted') return 'completed'
+      if (workflow.status === 'trust_scored') return 'analyzing'
+      if (workflow.status === 'plagiarism_checked') return 'checking'
+      if (workflow.status === 'eligible') return 'eligible'
+      if (workflow.status === 'uploaded') return 'uploaded'
+      return workflow.status
+    }
+    
+    // Fallback based on workflow data
+    if (workflow.nftMintingData) return 'completed'
+    if (workflow.humanReviewData) return 'review'
+    if (workflow.trustScoreData) return 'analyzing'
+    if (workflow.plagiarismResult) return 'checking'
+    if (workflow.eligible) return 'eligible'
+    if (workflow.documentFile) return 'uploaded'
+    
+    return 'unknown'
   }
 
   const getWorkflowDescription = (workflow: any) => {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { useAccount, useContractRead, usePrepareContractWrite, useContractWrite, useWaitForTransaction } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 
 const CONTRACT_ADDRESS = '0x85ab510c1d219e207916a8c8a36a33ce56f3ef6e';
@@ -65,44 +65,48 @@ export default function PaymentComponent() {
   const { address } = useAccount();
 
   // Read balance
-  const { data: balance, refetch: refetchBalance } = useContractRead({
+  const { data: balance, refetch: refetchBalance } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
     functionName: 'getBalance',
     args: address ? [address] : undefined,
-    enabled: !!address,
-    watch: true,
-  });
-
-  // Prepare deposit
-  const { config, error: prepareError } = usePrepareContractWrite({
-    address: CONTRACT_ADDRESS,
-    abi: CONTRACT_ABI,
-    functionName: 'deposit',
-    args: amount ? [parseEther(amount)] : undefined,
-    enabled: !!address && !!amount,
-  });
-
-  const { write, data: txData, isLoading: isWriting, isSuccess: isWriteSuccess, error: writeError } = useContractWrite(config);
-
-  // Wait for transaction
-  const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransaction({
-    hash: txData?.hash,
-    enabled: !!txData?.hash,
-    onSuccess: () => {
-      refetchBalance();
-      setAmount('');
+    query: {
+      enabled: !!address,
     },
   });
 
-  useEffect(() => {
-    if (prepareError) setError(prepareError.message);
-    else if (writeError) setError(writeError.message);
-    else setError('');
-  }, [prepareError, writeError]);
+  // Deposit contract write (updated for new wagmi version)
+  const { writeContract, data: txData, isPending: isWriting, error: writeError } = useWriteContract();
 
-  const handleBuyTokens = () => {
-    if (write) write();
+  // Wait for transaction
+  const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
+    hash: txData,
+  });
+
+  // Handle transaction success
+  useEffect(() => {
+    if (txData && isTxSuccess) {
+      refetchBalance();
+      setAmount('');
+    }
+  }, [txData, isTxSuccess, refetchBalance]);
+
+  useEffect(() => {
+    if (writeError) setError(writeError.message);
+    else setError('');
+  }, [writeError]);
+
+  const handleBuyTokens = async () => {
+    try {
+      await writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: 'deposit',
+        args: amount ? [parseEther(amount)] : undefined,
+      });
+    } catch (error) {
+      setError('Transaction failed');
+    }
   };
 
   return (

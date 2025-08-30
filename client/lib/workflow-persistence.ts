@@ -60,6 +60,8 @@ class WorkflowPersistenceService {
       const updatedState = {
         ...existingState,
         ...state,
+        // Ensure timestamps exist
+        createdAt: existingState?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
@@ -77,6 +79,21 @@ class WorkflowPersistenceService {
           size: file.size,
           data: base64File,
         };
+
+        // Auto-populate documentName from file name when available
+        if (!updatedState.documentName) {
+          updatedState.documentName = file.name;
+        }
+
+        // Ensure we have a documentId when a file is present
+        if (!updatedState.documentId) {
+          updatedState.documentId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        // Ensure workflow step is at least 1 after upload
+        if (!updatedState.step || updatedState.step < 1) {
+          updatedState.step = 1;
+        }
       }
 
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(updatedState));
@@ -115,11 +132,24 @@ class WorkflowPersistenceService {
         });
       }
 
-      // Validate state structure
-      if (!state.documentId || !state.createdAt) {
-        console.warn('Invalid workflow state found, clearing...');
-        this.clearWorkflowState();
-        return null;
+      // Heal missing fields instead of discarding state
+      let mutated = false;
+      if (!state.createdAt) {
+        state.createdAt = new Date().toISOString();
+        mutated = true;
+      }
+      if (!state.documentId && state.documentFile) {
+        state.documentId = `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        mutated = true;
+      }
+      if (state.documentFile && (!state.step || state.step < 1)) {
+        state.step = 1;
+        mutated = true;
+      }
+      if (mutated) {
+        try {
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+        } catch {}
       }
       
       return state;

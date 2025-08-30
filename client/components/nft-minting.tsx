@@ -7,7 +7,7 @@ import { RippleButton } from "./ui/ripple-button"
 import { FileText, Check, Clock, Share2, Download, ExternalLink, Copy, Shield } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { uploadMetadata } from "../lib/utils";
-import { useAccount, usePrepareContractWrite, useContractWrite, useWaitForTransaction } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import contractABI from "../lib/MintellectNFT_ABI.json";
 
 interface NFTMintingProps {
@@ -36,24 +36,44 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
   const [ipfsUrl, setIpfsUrl] = useState<string | null>(null);
   const [mintArgs, setMintArgs] = useState<[string, string] | null>(null);
 
-  // Prepare contract write
-  const { config, error: prepareError } = usePrepareContractWrite({
-    address: CONTRACT_ADDRESS,
-    abi: contractABI,
-    functionName: 'mintNFT',
-    args: mintArgs || undefined,
-    enabled: !!mintArgs,
+  // Contract write (updated for new wagmi version)
+  const { writeContract, data: txData, isPending: isWriting, error: writeError } = useWriteContract();
+
+  // Wait for transaction
+  const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
+    hash: txData,
   });
-  const { write, data: txData, isLoading: isWriting, isSuccess: isWriteSuccess, error: writeError } = useContractWrite(config);
-  const { isLoading: isTxLoading, isSuccess: isTxSuccess } = useWaitForTransaction({
-    hash: txData?.hash,
-    enabled: !!txData?.hash,
-    onSuccess: () => {
+
+  // Handle transaction success
+  useEffect(() => {
+    if (txData && isTxSuccess) {
+      // Extract token ID from transaction receipt
+      // For now, we'll use a placeholder - in a real implementation,
+      // you'd parse the transaction logs to get the actual token ID
+      const mockTokenId = `#${Math.floor(Math.random() * 1000000)}`;
+      
+      setNftData({
+        tokenId: mockTokenId,
+        transactionHash: txData,
+        blockchain: "EduChain Testnet",
+        ipfsUrl: ipfsUrl || "",
+        certificateUrl: ipfsUrl || ""
+      });
+      
       setStatus("complete");
       setProgress(100);
       if (onComplete) onComplete();
-    },
-  });
+    }
+  }, [txData, isTxSuccess, onComplete, ipfsUrl]);
+
+  // Handle write contract errors
+  useEffect(() => {
+    if (writeError) {
+      console.error("Write contract error:", writeError);
+      setError(writeError.message || "Contract interaction failed");
+      setStatus("failed");
+    }
+  }, [writeError]);
 
   // Mint handler
   const handleMint = async () => {
@@ -73,13 +93,24 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
       const ipfsUrl = await uploadMetadata(metadata);
       setIpfsUrl(ipfsUrl);
       setProgress(60);
-      // 3. Prepare mint args
+      // 3. Prepare mint args and call contract
       if (!address) throw new Error("Wallet not connected");
-      setMintArgs([address, ipfsUrl]);
-      setProgress(80);
-      // 4. Call write (mintNFT)
-      if (write) write();
+      
+      console.log("Minting NFT with args:", [address, ipfsUrl]);
+      console.log("Contract address:", CONTRACT_ADDRESS);
+      
+      // 4. Call writeContract (mintNFT) - don't await, let wagmi handle it
+      writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: contractABI,
+        functionName: 'mintNFT',
+        args: [address, ipfsUrl],
+      });
+      
+      setProgress(90);
+      setStatus("confirming");
     } catch (err: any) {
+      console.error("Minting error:", err);
       setError(err.message || "Minting failed");
       setStatus("failed");
     }

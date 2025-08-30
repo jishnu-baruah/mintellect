@@ -138,7 +138,8 @@ export default function ProfileSettings() {
       });
   }, [walletConnected, walletAddress]);
 
-  if (checking) return <div className="flex items-center justify-center h-[60vh]"><span className="text-lg text-gray-400">Checking profile status...</span></div>;
+  // Show cached content immediately if available
+  if (checking && !profileComplete) return <div className="flex items-center justify-center h-[60vh]"><span className="text-lg text-gray-400">Checking profile status...</span></div>;
 
   if (!walletConnected || !walletAddress) {
     const { connectWallet, isLoading } = useWallet();

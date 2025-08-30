@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { FileText, Check, Clock, AlertCircle } from "lucide-react"
 import { RippleButton } from "./ui/ripple-button"
+import { useRouter } from "next/navigation"
 
 interface Document {
   id: string
@@ -17,6 +18,8 @@ interface DocumentListProps {
 }
 
 export function DocumentList({ documents, onSelectDocument }: DocumentListProps) {
+  const router = useRouter()
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "complete":
@@ -95,7 +98,7 @@ export function DocumentList({ documents, onSelectDocument }: DocumentListProps)
                   onClick={() => {
                     // If the document is complete, navigate to results page
                     if (doc.status === "trust_scored" || doc.status === "complete") {
-                      window.location.href = `/results/${doc.id}`
+                      router.push(`/results/${doc.id}`)
                     } else {
                       onSelectDocument(doc.id)
                     }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { ethers } from "ethers"
 import contractABI from "@/lib/MintellectNFT_ABI.json"
 import {
@@ -49,28 +49,40 @@ export default function AnalyticsPage() {
   const total = 0;
   const isTotalLoading = false;
 
+  // Helper to shallow-compare arrays by tokenId length+ids to prevent unnecessary state updates
+  const isSameList = (a: any[], b: any[]) => {
+    if (a.length !== b.length) return false
+    for (let i = 0; i < a.length; i++) {
+      if (a[i]?.tokenId !== b[i]?.tokenId) return false
+    }
+    return true
+  }
+
   useEffect(() => {
     const fetchNFTs = async () => {
+      if (!address) return
       setLoading(true)
       setError(null)
       try {
-        if (!address) throw new Error("Wallet not connected")
         const provider = new ethers.BrowserProvider((window as any).ethereum)
         const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider)
-        const nfts: any[] = []
+        const next: any[] = []
+        const seen = new Set<string>()
         for (let i = 0; i < Number(total); i++) {
           try {
             const tokenId = i.toString()
+            if (seen.has(tokenId)) continue
             const tokenURI = await contract.tokenURI(tokenId)
             const owner = (await contract.ownerOf(tokenId)).toLowerCase()
-            // Only include NFTs owned by the connected wallet
             if (!walletAddress || owner !== walletAddress.toLowerCase()) continue
             const ipfsUrl = tokenURI.startsWith("ipfs://")
               ? `https://gateway.pinata.cloud/ipfs/${tokenURI.replace("ipfs://", "")}`
               : tokenURI
             const metaRes = await fetch(ipfsUrl)
+            if (!metaRes.ok) continue
             const meta = await metaRes.json()
-            nfts.push({
+            seen.add(tokenId)
+            next.push({
               tokenId,
               documentName: meta.name || "Untitled Document",
               trustScore: meta.trustScore || 0,
@@ -80,7 +92,9 @@ export default function AnalyticsPage() {
             })
           } catch {}
         }
-        setNfts(nfts)
+        // Keep stable order by tokenId
+        next.sort((a, b) => Number(a.tokenId) - Number(b.tokenId))
+        setNfts(prev => (isSameList(prev, next) ? prev : next))
       } catch (err: any) {
         setError(err.message || "Failed to fetch NFTs")
       } finally {
@@ -90,48 +104,56 @@ export default function AnalyticsPage() {
     fetchNFTs()
   }, [walletAddress, address, total])
 
-  // Compute stats
+  // Memoized computed datasets
   const totalPapers = nfts.length
-  const certificatesIssued = nfts.length
-  const avgTrustScore = nfts.length ? (nfts.reduce((sum, n) => sum + n.trustScore, 0) / nfts.length).toFixed(1) : "-"
-  const rejectionRate = "0%" // Not tracked in metadata
+  const certificatesIssued = totalPapers
+  const avgTrustScore = useMemo(() => (
+    nfts.length ? (nfts.reduce((sum, n) => sum + n.trustScore, 0) / nfts.length).toFixed(1) : "-"
+  ), [nfts])
 
-  // Activity over time (by month)
-  const monthlyMap: Record<string, { papers: number; certificates: number }> = {}
-  nfts.forEach((n) => {
-    if (!n.mintedDate) return
-    const key = n.mintedDate.toLocaleString("default", { month: "short", year: "numeric" })
-    if (!monthlyMap[key]) monthlyMap[key] = { papers: 0, certificates: 0 }
-    monthlyMap[key].papers++
-    monthlyMap[key].certificates++
-  })
-  const monthlyData = Object.entries(monthlyMap).map(([name, v]) => ({ name, ...v }))
+  const monthlyData = useMemo(() => {
+    const monthlyMap: Record<string, { papers: number; certificates: number }> = {}
+    nfts.forEach((n) => {
+      if (!n.mintedDate) return
+      const key = n.mintedDate.toLocaleString("default", { month: "short", year: "numeric" })
+      if (!monthlyMap[key]) monthlyMap[key] = { papers: 0, certificates: 0 }
+      monthlyMap[key].papers++
+      monthlyMap[key].certificates++
+    })
+    return Object.entries(monthlyMap).map(([name, v]) => ({ name, ...v }))
+  }, [nfts])
 
-  // Category data
-  const categoryMap: Record<string, number> = {}
-  nfts.forEach((n) => {
-    categoryMap[n.category] = (categoryMap[n.category] || 0) + 1
-  })
-  const categoryData = Object.entries(categoryMap).map(([name, value]) => ({ name, value }))
+  const categoryData = useMemo(() => {
+    const categoryMap: Record<string, number> = {}
+    nfts.forEach((n) => {
+      categoryMap[n.category] = (categoryMap[n.category] || 0) + 1
+    })
+    return Object.entries(categoryMap).map(([name, value]) => ({ name, value }))
+  }, [nfts])
 
-  // Trust score distribution
-  const scoreBuckets = [
-    { name: "90-100", count: 0 },
-    { name: "80-89", count: 0 },
-    { name: "70-79", count: 0 },
-    { name: "60-69", count: 0 },
-    { name: "Below 60", count: 0 },
-  ]
-  nfts.forEach((n) => {
-    if (n.trustScore >= 90) scoreBuckets[0].count++
-    else if (n.trustScore >= 80) scoreBuckets[1].count++
-    else if (n.trustScore >= 70) scoreBuckets[2].count++
-    else if (n.trustScore >= 60) scoreBuckets[3].count++
-    else scoreBuckets[4].count++
-  })
+  const scoreBuckets = useMemo(() => {
+    const buckets = [
+      { name: "90-100", count: 0 },
+      { name: "80-89", count: 0 },
+      { name: "70-79", count: 0 },
+      { name: "60-69", count: 0 },
+      { name: "Below 60", count: 0 },
+    ]
+    nfts.forEach((n) => {
+      if (n.trustScore >= 90) buckets[0].count++
+      else if (n.trustScore >= 80) buckets[1].count++
+      else if (n.trustScore >= 70) buckets[2].count++
+      else if (n.trustScore >= 60) buckets[3].count++
+      else buckets[4].count++
+    })
+    return buckets
+  }, [nfts])
 
-  // Recent activity (last 5 NFTs)
-  const recentNFTs = [...nfts].sort((a, b) => (b.mintedDate?.getTime() || 0) - (a.mintedDate?.getTime() || 0)).slice(0, 5)
+  const recentNFTs = useMemo(() => (
+    [...nfts]
+      .sort((a, b) => (b.mintedDate?.getTime() || 0) - (a.mintedDate?.getTime() || 0))
+      .slice(0, 5)
+  ), [nfts])
 
   // Custom tooltip for the line chart
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -201,7 +223,7 @@ export default function AnalyticsPage() {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
         >
           <StatCard title="Total Papers" value={totalPapers} />
-          <StatCard title="Average Trust Score" value={avgTrustScore} />
+          <StatCard title="Average Trust Score" value={avgTrustScore as any} />
           <StatCard title="Most Popular Category" value={categoryData.length ? categoryData[0].name : '-'} />
         </motion.div>
 
@@ -291,7 +313,7 @@ function StatCard({
   value,
 }: {
   title: string
-  value: string
+  value: any
 }) {
   return (
     <GlassCard className="bg-black/70 border-gray-800/50 p-8 flex flex-col items-center justify-center shadow-lg hover:shadow-xl transition-shadow duration-300 group cursor-pointer">

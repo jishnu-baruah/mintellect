@@ -6,9 +6,10 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Navbar } from "@/components/navbar"
 import Web3Providers from "@/components/Web3Providers";
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import { usePathname } from "next/navigation"
 import { AnimatedLogo } from "@/components/ui/animated-logo"
 import { ProfileGate } from "@/components/profile-gate"
+import { UserProvider } from "@/lib/user-context"
+import { PerformanceMonitor } from "@/components/ui/performance-monitor"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -65,21 +66,24 @@ export default function RootLayout({
         ) : (
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
             <Web3Providers>
-              <div className="fixed inset-0 z-0 scale-[0.8] origin-top-left w-[125vw] h-[125vh] overflow-auto">
-                <div className="flex h-[125vh] bg-black overflow-hidden">
-                  <DashboardSidebar />
-                  <div className="flex-1 flex flex-col overflow-hidden ml-16 md:ml-0">
-                    <div className="fixed inset-0 -z-10 pointer-events-none">
-                      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-                      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-mintellect-primary/5 rounded-full filter blur-[80px]"></div>
-                      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-mintellect-secondary/5 rounded-full filter blur-[80px]"></div>
+              <UserProvider>
+                <div className="fixed inset-0 z-0 scale-[0.8] origin-top-left w-[125vw] h-[125vh] overflow-auto">
+                  <div className="flex h-[125vh] bg-black overflow-hidden">
+                    <DashboardSidebar />
+                    <div className="flex-1 flex flex-col overflow-hidden ml-16 md:ml-0">
+                      <div className="fixed inset-0 -z-10 pointer-events-none">
+                        <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+                        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-mintellect-primary/5 rounded-full filter blur-[80px]"></div>
+                        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-mintellect-secondary/5 rounded-full filter blur-[80px]"></div>
+                      </div>
+                      <main className="flex-1 overflow-y-auto hide-scrollbar">
+                        <ProfileGate>{children}</ProfileGate>
+                      </main>
+                      <PerformanceMonitor />
                     </div>
-                    <main className="flex-1 overflow-y-auto hide-scrollbar">
-                      <ProfileGate>{children}</ProfileGate>
-                    </main>
                   </div>
                 </div>
-              </div>
+              </UserProvider>
             </Web3Providers>
           </ThemeProvider>
         )}

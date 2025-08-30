@@ -41,6 +41,8 @@ export function useWallet() {
         setError('Connection failed. Please try again or use a different wallet.');
       } else if (connectError.message.includes('timeout') || connectError.message.includes('Timeout')) {
         setError('Connection timed out. Please check your internet connection and try again.');
+      } else if (connectError.message.includes('Keys not exchanged') || connectError.message.includes('BBB')) {
+        setError('MetaMask connection conflict. Please refresh the page or try disconnecting and reconnecting.');
       } else {
         setError(connectError.message || 'Connection failed. Please try again.');
       }
@@ -85,6 +87,24 @@ export function useWallet() {
     }
   };
 
+  // Reset connection state (useful for MetaMask SDK conflicts)
+  const resetConnection = () => {
+    try {
+      disconnect();
+      setError(null);
+      setConnectionAttempts(0);
+      
+      // Clear any cached connection state
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('wagmi.connected');
+        localStorage.removeItem('wagmi.account');
+        localStorage.removeItem('wagmi.chainId');
+      }
+    } catch (err: any) {
+      console.error('Connection reset error:', err);
+    }
+  };
+
   // Clear error after successful connection
   useEffect(() => {
     if (isConnected && error) {
@@ -98,6 +118,7 @@ export function useWallet() {
     walletAddress: address || '',
     connectWallet,
     disconnectWallet,
+    resetConnection,
     error,
     isLoading,
     connectionAttempts,

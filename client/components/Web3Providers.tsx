@@ -10,16 +10,16 @@ import { createConfig, http } from 'wagmi';
 // Educhain Testnet configuration
 const educhainTestnet = {
   id: 656476,
-  name: 'Educhain Testnet',
-  network: 'educhain',
+  name: 'EDU Chain Testnet',
+  network: 'EDU Chain Testnet',
   nativeCurrency: {
     decimals: 18,
     name: 'EDU',
     symbol: 'EDU',
   },
   rpcUrls: {
-    default: { http: ['https://rpc.open-campus-codex.gelato.digital'] },
-    public: { http: ['https://rpc.open-campus-codex.gelato.digital'] },
+    default: { http: ['https://open-campus-codex-sepolia.drpc.org'] },
+    public: { http: ['https://open-campus-codex-sepolia.drpc.org'] },
   },
   blockExplorers: {
     default: { name: 'Blockscout', url: 'https://edu-chain-testnet.blockscout.com' },
@@ -43,7 +43,7 @@ const config = createConfig({
   chains,
   connectors,
   transports: {
-    [educhainTestnet.id]: http('https://rpc.open-campus-codex.gelato.digital'),
+    [educhainTestnet.id]: http('https://open-campus-codex-sepolia.drpc.org'),
   },
 });
 
@@ -53,6 +53,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       retryDelay: 1000,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
     mutations: {
       retry: 1,
@@ -75,4 +76,4 @@ export default function Web3Providers({ children }: { children: ReactNode }) {
       </QueryClientProvider>
     </WagmiProvider>
   );
-} 
+}

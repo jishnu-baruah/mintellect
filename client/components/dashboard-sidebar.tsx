@@ -69,6 +69,12 @@ export function DashboardSidebar({ className }: { className?: string }) {
   const { walletConnected, connectWallet, disconnectWallet } = useWallet()
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+
+  // Prevent hydration mismatch by only rendering wallet state on client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Expand sidebar if not mobile on mount
   useEffect(() => {
@@ -416,16 +422,16 @@ export function DashboardSidebar({ className }: { className?: string }) {
       )}>
         {/* Wallet Connect Button */}
         <button
-          onClick={walletConnected ? disconnectWallet : connectWallet}
+          onClick={isClient && walletConnected ? disconnectWallet : connectWallet}
           className={cn(
             "w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors min-w-0",
-            walletConnected
+            isClient && walletConnected
               ? "bg-green-500/10 text-green-400 border-green-500/30 hover:bg-green-500/20 border"
               : "bg-blue-600/10 text-blue-400 border-blue-500/30 hover:bg-blue-600/20 border",
           )}
         >
           <Wallet className="w-5 h-5 shrink-0" />
-          {walletConnected ? (
+          {isClient && walletConnected ? (
             <span className={collapsedFinal ? "hidden" : "flex items-center gap-1 text-green-400 font-semibold overflow-hidden whitespace-nowrap text-ellipsis min-w-0"}>
               Wallet Connected
               <span className="w-2 h-2 rounded-full bg-green-400 ml-1 shrink-0" />
