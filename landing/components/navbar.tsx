@@ -3,9 +3,11 @@
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion"
-import { Menu, X, ChevronRight } from "lucide-react"
+import { Menu, X, ChevronRight, Send, Rocket } from "lucide-react"
+import { XIcon } from "@/components/icons/x-icon"
 import { cn } from "@/lib/utils"
 import { usePathname } from "next/navigation"
+import { ExpandedTabs } from "@/components/ui/expanded-tabs"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -66,50 +68,15 @@ export function Navbar() {
 
   // Navigation items with enhanced structure
   const navItems = [
-    {
-      name: "Telegram",
-      href: "https://t.me/mintellect_community",
-      icon: (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ transform: 'translate(1px, 2px)' }}
-        >
-          <path
-            d="M21.05 2.927a2.25 2.25 0 0 0-2.37-.37L3.36 9.37c-1.49.522-1.471 1.27-.254 1.611l4.624 1.444 10.74-6.77c.505-.327.968-.146.588.181l-8.2 7.01 3.36 2.45 2.676-2.56 5.547 4.047c1.016.561 1.74.266 1.992-.941l3.613-16.84c.33-1.527-.553-2.127-1.54-1.792z"
-            fill="currentColor"
-          />
-        </svg>
-      ),
+    { title: "Telegram", href: "https://t.me/mintellect_community", icon: Send, external: true },
+  { title: "X", href: "https://x.com/_Mintellect_", icon: XIcon, external: true, showTitle: false },
+    { 
+      title: "Launch App", 
+      href: "https://app.mintellect.xyz", 
+      icon: Rocket, 
       external: true,
-    },
-    {
-      name: "X",
-      href: "https://x.com/_Mintellect_",
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="text-white"
-        >
-          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-        </svg>
-      ),
-      external: true,
-    },
-    {
-      name: "Launch App",
-      href: "https://app.mintellect.xyz",
-      icon: null,
-      external: true,
-      highlight: true,
-    },
+      highlight: true 
+    }
   ]
 
   // Radial gradient for hover effect
@@ -121,7 +88,9 @@ export function Navbar() {
       ref={navRef}
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
-        scrolled ? "bg-black/60 backdrop-blur-xl border-b border-blue-900/30 py-3" : "bg-transparent py-5",
+        scrolled 
+          ? "bg-black/60 backdrop-blur-xl after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-blue-900/50 after:to-transparent py-3" 
+          : "bg-transparent py-5",
         visible ? "transform-none" : "-translate-y-full",
       )}
     >
@@ -285,62 +254,11 @@ export function Navbar() {
           {/* Right side - Navigation and mobile menu */}
           <div className="flex items-center">
             <nav className="hidden md:flex items-center space-x-6 mr-4">
-              {navItems.map((item, index) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "text-sm font-medium transition-all duration-300 hover:text-white relative group flex items-center",
-                    pathname === item.href ? "text-white" : "text-gray-400",
-                    item.highlight ? "ml-2" : "",
-                  )}
-                  {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                  onMouseEnter={() => setHoverLink(item.name)}
-                  onMouseLeave={() => setHoverLink(null)}
-                >
-                  {/* Icon if present */}
-                  {item.icon ? (
-                    <motion.div
-                      whileHover={{ scale: 1.2, rotate: 5 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                    >
-                      {item.icon}
-                    </motion.div>
-                  ) : (
-                    <>
-                      {/* Text with hover effect */}
-                      <span className="relative">
-                        {item.name}
-
-                        {/* Removed animated underline */}
-                      </span>
-
-                      {/* Active indicator */}
-                      {pathname === item.href && (
-                        <motion.span
-                          layoutId="navbar-active"
-                          className="absolute -bottom-1 left-0 w-full h-0.5 bg-blue-500"
-                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        />
-                      )}
-                    </>
-                  )}
-
-                  {/* Special highlight for CTA button */}
-                  {item.highlight && (
-                    <motion.div
-                      className="absolute inset-0 rounded-full -z-10 bg-gray-800/50"
-                      initial={{ opacity: 0 }}
-                      animate={{
-                        opacity: hoverLink === item.name ? 1 : pathname === item.href ? 0.7 : 0.3,
-                        scale: hoverLink === item.name ? 1.05 : 1,
-                      }}
-                      transition={{ duration: 0.3 }}
-                      style={{ padding: "0.5rem 1rem" }}
-                    />
-                  )}
-                </Link>
-              ))}
+              <ExpandedTabs 
+                tabs={navItems}
+                activeColor="text-blue-500"
+                className="bg-transparent border-blue-900/20 dark:border-blue-800/20"
+              />
             </nav>
 
             {/* Mobile menu button with animation */}
@@ -381,70 +299,20 @@ export function Navbar() {
           >
             <div className="container mx-auto px-4 py-6">
               <nav className="flex flex-col space-y-5">
-                {navItems.map((item, index) => (
-                  <motion.div
-                    key={`mobile-${item.name}`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      duration: 0.3,
-                      delay: index * 0.1,
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
-                  >
-                    <Link
-                      href={item.href}
-                      onClick={closeMenu}
-                      className={cn(
-                        "text-base font-medium transition-colors hover:text-white py-2 flex items-center gap-3 group",
-                        pathname === item.href ? "text-white" : "text-gray-400",
-                      )}
-                      {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    >
-                      {item.icon ? (
-                        <motion.div whileHover={{ scale: 1.2, rotate: 5 }} className="text-blue-400">
-                          {item.icon}
-                        </motion.div>
-                      ) : (
-                        <div className="flex items-center justify-between w-full">
-                          <span>{item.name}</span>
-                          <motion.div
-                            animate={{ x: [0, 5, 0] }}
-                            transition={{
-                              duration: 1.5,
-                              repeat: Number.POSITIVE_INFINITY,
-                              repeatType: "loop",
-                              ease: "easeInOut",
-                              delay: index * 0.2,
-                            }}
-                          >
-                            <ChevronRight className="h-4 w-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </motion.div>
-                        </div>
-                      )}
-
-                      {/* Highlight for CTA */}
-                      {item.highlight && (
-                        <motion.div
-                          className="absolute inset-0 rounded-md bg-blue-500/10 -z-10"
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          whileHover={{ opacity: 0.5, scale: 1 }}
-                          transition={{ duration: 0.2 }}
-                        />
-                      )}
-                    </Link>
-
-                    {/* Animated separator */}
-                    {index < navItems.length - 1 && (
-                      <motion.div
-                        className="h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent mt-2"
-                        initial={{ scaleX: 0, opacity: 0 }}
-                        animate={{ scaleX: 1, opacity: 1 }}
-                        transition={{ duration: 0.5, delay: index * 0.1 + 0.3 }}
-                      />
-                    )}
-                  </motion.div>
-                ))}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{
+                    duration: 0.3,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                >
+                  <ExpandedTabs 
+                    tabs={navItems}
+                    activeColor="text-blue-500"
+                    className="border-blue-900/20 dark:border-blue-800/20 bg-black/20"
+                  />
+                </motion.div>
               </nav>
 
               {/* Decorative elements */}

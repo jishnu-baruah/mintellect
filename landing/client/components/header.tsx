@@ -4,23 +4,34 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
-import { useOCAuth } from "@opencampus/ocid-connect-js" // Ensure correct import
+import { useOCAuth } from "@opencampus/ocid-connect-js"
 import { cn } from "@/lib/utils"
-import { Bell, User, Menu } from "lucide-react"
+import {
+  Bell,
+  User,
+  Menu,
+  Home,
+  FileText,
+  Shield,
+  HelpCircle,
+  Settings,
+} from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useState } from "react"
+import { ExpandedTabs } from "@/components/ui/expanded-tabs"
 
 export default function Header() {
   const pathname = usePathname()
-  const { ocAuth, isInitialized, authState } = useOCAuth() // Adjusted to match the correct hook usage
+  const { ocAuth, isInitialized, authState } = useOCAuth()
   const [hasNotifications, setHasNotifications] = useState(true)
 
   const navItems = [
-    { href: "/", label: "Home" },
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/plagiarism", label: "Plagiarism" },
-    { href: "/trust-score", label: "Trust Score" },
-    { href: "/review", label: "Review" },
+    { title: "Dashboard", icon: Home, href: "/dashboard" },
+    { title: "Documents", icon: FileText, href: "/plagiarism" },
+    { type: "separator" as const },
+    { title: "Trust Score", icon: Shield, href: "/trust-score" },
+    { title: "Review", icon: HelpCircle, href: "/review" },
+    { title: "Settings", icon: Settings, href: "/settings" },
   ]
 
   const handleLogout = async () => {
@@ -44,19 +55,8 @@ export default function Header() {
               <span className="gradient-text">Mintellect</span>
             </span>
           </Link>
-          <nav className="hidden md:flex gap-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "text-sm font-medium transition-colors hover:text-primary",
-                  pathname === item.href ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
+          <nav className="hidden md:block">
+            <ExpandedTabs tabs={navItems} />
           </nav>
         </div>
         <div className="flex items-center gap-4">
@@ -98,11 +98,20 @@ export default function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {navItems.map((item) => (
-                <DropdownMenuItem key={item.href} asChild>
-                  <Link href={item.href}>{item.label}</Link>
-                </DropdownMenuItem>
-              ))}
+              {navItems.map((item, index) => {
+                if (item.type === "separator") {
+                  return <DropdownMenuItem key={index} className="h-px bg-border/60" />
+                }
+                const Icon = item.icon
+                return (
+                  <DropdownMenuItem key={item.title} asChild>
+                    <Link href={item.href!} className="flex items-center gap-2">
+                      <Icon className="h-4 w-4" />
+                      {item.title}
+                    </Link>
+                  </DropdownMenuItem>
+                )
+              })}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
