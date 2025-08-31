@@ -37,6 +37,8 @@ const getLogoBase64 = () => {
   return null;
 };
 
+
+
 // Test endpoint to verify logo loading
 router.get('/test-logo', (req, res) => {
   try {
@@ -63,10 +65,10 @@ router.get('/test-logo', (req, res) => {
   }
 });
 
-// Fallback PDF generation (for testing without AWS credentials)
-router.post('/generate-plagiarism-report-local', async (req, res) => {
+// Direct PDF generation (sends PDF directly to client)
+router.post('/generate-plagiarism-report-direct', async (req, res) => {
   try {
-    console.log('Generating PDF locally (fallback)...');
+    console.log('Generating PDF and sending directly to client...');
     
     const { plagiarismData, documentName, sources } = req.body;
     
@@ -77,55 +79,78 @@ router.post('/generate-plagiarism-report-local', async (req, res) => {
     // Generate HTML content for the PDF
     const htmlContent = generatePlagiarismReportHTML(plagiarismData, documentName, sources);
     
-    // Launch Puppeteer
+    console.log('HTML content generated, length:', htmlContent.length);
+    console.log('HTML content preview:', htmlContent.substring(0, 500));
+    
+    // Launch Puppeteer with more robust settings
     const browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor'
+      ]
     });
     
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Generate PDF
-    const pdf = await page.pdf({
-      format: 'A4',
-      margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
-      printBackground: false,
-      displayHeaderFooter: false,
-      preferCSSPageSize: false,
-      omitBackground: true
-    });
-    
-    await browser.close();
-    
-    // Save PDF locally for testing
-    const uploadsDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+    let pdf;
+    try {
+      // Set viewport for consistent rendering
+      await page.setViewport({ width: 1200, height: 800 });
+      
+      // Set content and wait for it to be fully rendered
+      await page.setContent(htmlContent, { 
+        waitUntil: ['networkidle0', 'domcontentloaded', 'load']
+      });
+      
+      // Additional wait to ensure everything is rendered
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Generate PDF with simplified settings
+      pdf = await page.pdf({
+        format: 'A4',
+        margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
+        printBackground: false,
+        displayHeaderFooter: false,
+        preferCSSPageSize: false,
+        omitBackground: true
+      });
+    } finally {
+      await browser.close();
     }
     
+    // Verify PDF was generated correctly
+    if (!pdf || pdf.length === 0) {
+      throw new Error('PDF generation failed - empty result');
+    }
+    
+    console.log('PDF generated successfully, size:', pdf.length, 'bytes');
+    
+    // Generate filename
     const timestamp = Date.now();
     const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     const filename = `${sanitizedName}_plagiarism_report_${timestamp}.pdf`;
-    const filePath = path.join(uploadsDir, filename);
     
-    fs.writeFileSync(filePath, pdf);
+    console.log('PDF generated, sending directly to client:', filename);
     
-    console.log('PDF saved locally:', filePath);
+    // Set headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdf.length);
+    res.setHeader('Cache-Control', 'no-cache');
     
-    res.json({
-      success: true,
-      message: 'PDF generated and saved locally',
-      filename: filename,
-      localPath: filePath,
-      note: 'This is a local fallback. For production, use S3 endpoint.'
-    });
+    // Send PDF as Buffer
+    res.send(Buffer.from(pdf));
     
   } catch (error) {
-    console.error('Local PDF generation error:', error);
+    console.error('Direct PDF generation error:', error);
     res.status(500).json({ 
-      error: 'Failed to generate PDF locally', 
+      error: 'Failed to generate PDF', 
       details: error.message 
     });
   }
