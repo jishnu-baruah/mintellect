@@ -131,15 +131,19 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
         // Additional wait to ensure everything is rendered
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Generate PDF with simplified settings
+        // Generate PDF with production-optimized settings
         pdf = await page.pdf({
           format: 'A4',
           margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
-          printBackground: false,
+          printBackground: true,
           displayHeaderFooter: false,
-          preferCSSPageSize: false,
-          omitBackground: true
+          preferCSSPageSize: true,
+          omitBackground: false,
+          timeout: 30000
         });
+        
+        console.log('PDF generated, size:', pdf.length, 'bytes');
+        console.log('PDF first 100 bytes:', pdf.slice(0, 100).toString('hex'));
       } catch (browserError) {
         console.error('Browser error:', browserError);
         throw new Error(`PDF generation failed: ${browserError.message}`);
@@ -153,43 +157,86 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
     } catch (puppeteerError) {
       console.error('Puppeteer error:', puppeteerError);
       
-      // Fallback: Return HTML content with instructions
-      res.setHeader('Content-Type', 'text/html');
-      res.setHeader('Content-Disposition', `attachment; filename="${documentName}_report.html"`);
-      res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      
-      const fallbackHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>PDF Generation Failed</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .error { color: red; }
-            .instructions { background: #f0f0f0; padding: 15px; border-radius: 5px; }
-          </style>
-        </head>
-        <body>
-          <h1>PDF Generation Temporarily Unavailable</h1>
-          <p class="error">The PDF generation service is currently experiencing technical difficulties.</p>
-          <div class="instructions">
-            <h3>Alternative Options:</h3>
-            <ol>
-              <li>Try again in a few minutes</li>
-              <li>Use the "Print to PDF" feature in your browser (Ctrl+P or Cmd+P)</li>
-              <li>Contact support if the issue persists</li>
-            </ol>
-          </div>
-          <hr>
-          <h2>Report Content:</h2>
-          ${htmlContent}
-        </body>
-        </html>
-      `;
-      
-      return res.send(fallbackHtml);
+      // Try alternative PDF generation method
+      try {
+        console.log('Attempting alternative PDF generation...');
+        
+        const browser = await puppeteer.launch({
+          headless: 'new',
+          executablePath: process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+          args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-first-run'
+          ]
+        });
+        
+        const page = await browser.newPage();
+        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        pdf = await page.pdf({
+          format: 'A4',
+          margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
+          printBackground: false,
+          displayHeaderFooter: false,
+          preferCSSPageSize: false,
+          omitBackground: true
+        });
+        
+        await browser.close();
+        
+        console.log('Alternative PDF generation successful, size:', pdf.length, 'bytes');
+        
+        // Verify PDF
+        const pdfHeader = pdf.slice(0, 4).toString('ascii');
+        if (pdfHeader !== '%PDF') {
+          throw new Error('Alternative PDF generation also failed');
+        }
+        
+      } catch (alternativeError) {
+        console.error('Alternative PDF generation failed:', alternativeError);
+        
+        // Final fallback: Return HTML content with instructions
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Content-Disposition', `attachment; filename="${documentName}_report.html"`);
+        res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        
+        const fallbackHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>PDF Generation Failed</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              .error { color: red; }
+              .instructions { background: #f0f0f0; padding: 15px; border-radius: 5px; }
+            </style>
+          </head>
+          <body>
+            <h1>PDF Generation Temporarily Unavailable</h1>
+            <p class="error">The PDF generation service is currently experiencing technical difficulties.</p>
+            <div class="instructions">
+              <h3>Alternative Options:</h3>
+              <ol>
+                <li>Try again in a few minutes</li>
+                <li>Use the "Print to PDF" feature in your browser (Ctrl+P or Cmd+P)</li>
+                <li>Contact support if the issue persists</li>
+              </ol>
+            </div>
+            <hr>
+            <h2>Report Content:</h2>
+            ${htmlContent}
+          </body>
+          </html>
+        `;
+        
+        return res.send(fallbackHtml);
+      }
     }
     
     // Verify PDF was generated correctly
@@ -197,7 +244,15 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
       throw new Error('PDF generation failed - empty result');
     }
     
+    // Check if PDF starts with the correct magic number
+    const pdfHeader = pdf.slice(0, 4).toString('ascii');
+    if (pdfHeader !== '%PDF') {
+      console.error('Invalid PDF header:', pdfHeader);
+      throw new Error('PDF generation failed - invalid PDF format');
+    }
+    
     console.log('PDF generated successfully, size:', pdf.length, 'bytes');
+    console.log('PDF header:', pdfHeader);
     
     // Generate filename
     const timestamp = Date.now();
@@ -210,13 +265,15 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', pdf.length);
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
-    // Send PDF as Buffer
-    res.send(Buffer.from(pdf));
+    // Send PDF directly as Buffer
+    res.end(pdf);
     
   } catch (error) {
     console.error('Direct PDF generation error:', error);
