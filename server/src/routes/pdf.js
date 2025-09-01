@@ -244,43 +244,144 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
       } catch (alternativeError) {
         console.error('Alternative PDF generation failed:', alternativeError);
         
-        // Final fallback: Return HTML content with instructions
-        res.setHeader('Content-Type', 'text/html');
-        res.setHeader('Content-Disposition', `attachment; filename="${documentName}_report.html"`);
-        res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-        
-        const fallbackHtml = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>PDF Generation Failed</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; }
-              .error { color: red; }
-              .instructions { background: #f0f0f0; padding: 15px; border-radius: 5px; }
-            </style>
-          </head>
-          <body>
-            <h1>PDF Generation Temporarily Unavailable</h1>
-            <p class="error">The PDF generation service is currently experiencing technical difficulties.</p>
-            <div class="instructions">
-              <h3>Alternative Options:</h3>
-              <ol>
-                <li>Try again in a few minutes</li>
-                <li>Use the "Print to PDF" feature in your browser (Ctrl+P or Cmd+P)</li>
-                <li>Contact support if the issue persists</li>
-              </ol>
-            </div>
-            <hr>
-            <h2>Report Content:</h2>
-            ${htmlContent}
-          </body>
-          </html>
-        `;
-        
-        return res.send(fallbackHtml);
+                 // Final fallback: Return enhanced HTML content that can be easily converted to PDF
+         res.setHeader('Content-Type', 'text/html');
+         res.setHeader('Content-Disposition', `attachment; filename="${documentName}_report.html"`);
+         res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+         
+         const fallbackHtml = `
+           <!DOCTYPE html>
+           <html>
+           <head>
+             <title>Plagiarism Report - ${documentName}</title>
+             <meta charset="UTF-8">
+             <style>
+               @media print {
+                 body { margin: 0; padding: 20px; }
+                 .no-print { display: none; }
+                 .page-break { page-break-before: always; }
+               }
+               
+               body { 
+                 font-family: Arial, sans-serif; 
+                 padding: 20px; 
+                 margin: 0;
+                 background: white;
+                 color: #333;
+               }
+               
+               .header {
+                 text-align: center;
+                 margin-bottom: 30px;
+                 border-bottom: 2px solid #6366f1;
+                 padding-bottom: 20px;
+               }
+               
+               .logo-section {
+                 display: flex;
+                 align-items: center;
+                 justify-content: center;
+                 margin-bottom: 15px;
+               }
+               
+               .brand-name {
+                 font-size: 28px;
+                 font-weight: bold;
+                 color: #6366f1;
+                 margin-left: 15px;
+               }
+               
+               .instructions {
+                 background: #f8f9fa;
+                 padding: 15px;
+                 border-radius: 8px;
+                 margin-bottom: 20px;
+                 border-left: 4px solid #6366f1;
+               }
+               
+               .instructions h3 {
+                 margin-top: 0;
+                 color: #6366f1;
+               }
+               
+               .instructions ol {
+                 margin: 10px 0;
+                 padding-left: 20px;
+               }
+               
+               .instructions li {
+                 margin: 5px 0;
+               }
+               
+               .print-button {
+                 background: #6366f1;
+                 color: white;
+                 border: none;
+                 padding: 10px 20px;
+                 border-radius: 5px;
+                 cursor: pointer;
+                 font-size: 16px;
+                 margin: 10px 5px;
+               }
+               
+               .print-button:hover {
+                 background: #4f46e5;
+               }
+               
+               .no-print {
+                 text-align: center;
+                 margin: 20px 0;
+               }
+               
+               .report-content {
+                 margin-top: 30px;
+               }
+             </style>
+           </head>
+           <body>
+             <div class="header">
+               <div class="logo-section">
+                 <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">M</div>
+                 <div class="brand-name">Mintellect</div>
+               </div>
+               <h1>Plagiarism Report</h1>
+               <p>Document: ${documentName}</p>
+               <p>Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+             </div>
+             
+             <div class="no-print">
+               <div class="instructions">
+                 <h3>📄 How to Save as PDF:</h3>
+                 <ol>
+                   <li><strong>Press Ctrl+P (Windows) or Cmd+P (Mac)</strong></li>
+                   <li>Select "Save as PDF" as the destination</li>
+                   <li>Choose your preferred settings</li>
+                   <li>Click "Save" to download the PDF</li>
+                 </ol>
+                 <button class="print-button" onclick="window.print()">🖨️ Print/Save as PDF</button>
+                 <button class="print-button" onclick="window.close()">❌ Close</button>
+               </div>
+             </div>
+             
+             <div class="report-content">
+               ${htmlContent}
+             </div>
+             
+             <script>
+               // Auto-print dialog on load (optional)
+               // window.onload = function() {
+               //   setTimeout(() => {
+               //     window.print();
+               //   }, 1000);
+               // }
+             </script>
+           </body>
+           </html>
+         `;
+         
+         return res.send(fallbackHtml);
       }
     }
     
