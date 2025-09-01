@@ -220,26 +220,48 @@ export function PlagiarismReportViewer({
       console.log('Response status:', response.status);
       console.log('Content-Type:', response.headers.get('content-type'));
 
-      // Get the PDF blob from response
-      const pdfBlob = await response.blob();
+      // Get the response blob
+      const responseBlob = await response.blob();
       
-      console.log('PDF blob size:', pdfBlob.size);
-      console.log('PDF blob type:', pdfBlob.type);
+      console.log('Response blob size:', responseBlob.size);
+      console.log('Response blob type:', responseBlob.type);
       
-      // Create download link
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `plagiarism_report_${Date.now()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Check if it's HTML (fallback) or PDF
+      console.log('Response type check:', responseBlob.type);
+      console.log('Content-Disposition:', response.headers.get('content-disposition'));
       
-      toast({
-        title: "PDF Generated Successfully",
-        description: "PDF downloaded to your computer",
-      })
+      if (responseBlob.type === 'text/html') {
+        // It's the HTML fallback - download as HTML file
+        console.log('Downloading HTML report...');
+        const url = window.URL.createObjectURL(responseBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `plagiarism_report_${Date.now()}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Report Downloaded",
+          description: "HTML report downloaded. Open it in your browser and use Ctrl+P to save as PDF.",
+        })
+      } else {
+        // It's a PDF - download directly
+        const url = window.URL.createObjectURL(responseBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `plagiarism_report_${Date.now()}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        toast({
+          title: "PDF Generated Successfully",
+          description: "PDF downloaded to your computer",
+        })
+      }
     } catch (error) {
       console.error('Error generating PDF:', error)
       toast({
