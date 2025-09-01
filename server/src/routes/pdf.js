@@ -245,8 +245,8 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
         console.error('Alternative PDF generation failed:', alternativeError);
         
                  // Final fallback: Return enhanced HTML content that can be easily converted to PDF
-         res.setHeader('Content-Type', 'text/html');
-         res.setHeader('Content-Disposition', `attachment; filename="${documentName}_report.html"`);
+         res.setHeader('Content-Type', 'text/html; charset=utf-8');
+         res.setHeader('Content-Disposition', `inline; filename="${documentName}_report.html"`);
          res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
