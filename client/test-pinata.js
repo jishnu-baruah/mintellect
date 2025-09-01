@@ -22,3 +22,4 @@ console.log("1. Update your .env file with: NEXT_PUBLIC_PINATA_JWT=your_jwt_here
 console.log("2. Use the uploadToPinata() function in your React components");
 console.log("3. Check the browser console for any errors");
 
+

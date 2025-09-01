@@ -202,8 +202,8 @@ export function PlagiarismReportViewer({
         sources: uniqueSources
       };
 
-      // Call server-side PDF generation endpoint (S3 approach)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf/generate-plagiarism-report-s3`, {
+      // Call server-side PDF generation endpoint (direct approach)
+      const response = await fetch(`http://localhost:5000/api/pdf/generate-plagiarism-report-direct`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -216,18 +216,29 @@ export function PlagiarismReportViewer({
         throw new Error(`Failed to generate PDF: ${response.status} ${response.statusText}`);
       }
 
-      const result = await response.json();
+      console.log('Response headers:', response.headers);
+      console.log('Response status:', response.status);
+      console.log('Content-Type:', response.headers.get('content-type'));
+
+      // Get the PDF blob from response
+      const pdfBlob = await response.blob();
       
-      if (!result.success || !result.downloadUrl) {
-        throw new Error('Server did not return a valid download URL');
-      }
-
-      // Open the S3 download URL in a new tab
-      window.open(result.downloadUrl, '_blank');
-
+      console.log('PDF blob size:', pdfBlob.size);
+      console.log('PDF blob type:', pdfBlob.type);
+      
+      // Create download link
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `plagiarism_report_${Date.now()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
       toast({
-        title: "PDF Ready for Download",
-        description: "Your plagiarism report PDF has been generated and is ready for download.",
+        title: "PDF Generated Successfully",
+        description: "PDF downloaded to your computer",
       })
     } catch (error) {
       console.error('Error generating PDF:', error)
