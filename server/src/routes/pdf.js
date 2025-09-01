@@ -251,6 +251,10 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
          
+         // Extract just the body content from the generated HTML, removing the duplicate HTML structure
+         const bodyContentMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+         const bodyContent = bodyContentMatch ? bodyContentMatch[1] : htmlContent;
+         
          const fallbackHtml = `
            <!DOCTYPE html>
            <html>
@@ -272,33 +276,13 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
                  color: #333;
                }
                
-               .header {
-                 text-align: center;
-                 margin-bottom: 30px;
-                 border-bottom: 2px solid #6366f1;
-                 padding-bottom: 20px;
-               }
-               
-               .logo-section {
-                 display: flex;
-                 align-items: center;
-                 justify-content: center;
-                 margin-bottom: 15px;
-               }
-               
-               .brand-name {
-                 font-size: 28px;
-                 font-weight: bold;
-                 color: #6366f1;
-                 margin-left: 15px;
-               }
-               
                .instructions {
                  background: #f8f9fa;
                  padding: 15px;
                  border-radius: 8px;
                  margin-bottom: 20px;
                  border-left: 4px solid #6366f1;
+                 text-align: center;
                }
                
                .instructions h3 {
@@ -309,6 +293,7 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
                .instructions ol {
                  margin: 10px 0;
                  padding-left: 20px;
+                 text-align: left;
                }
                
                .instructions li {
@@ -331,7 +316,6 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
                }
                
                .no-print {
-                 text-align: center;
                  margin: 20px 0;
                }
                
@@ -341,16 +325,6 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
              </style>
            </head>
            <body>
-             <div class="header">
-               <div class="logo-section">
-                 <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">M</div>
-                 <div class="brand-name">Mintellect</div>
-               </div>
-               <h1>Plagiarism Report</h1>
-               <p>Document: ${documentName}</p>
-               <p>Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-             </div>
-             
              <div class="no-print">
                <div class="instructions">
                  <h3>📄 How to Save as PDF:</h3>
@@ -366,7 +340,7 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
              </div>
              
              <div class="report-content">
-               ${htmlContent}
+               ${bodyContent}
              </div>
              
              <script>
