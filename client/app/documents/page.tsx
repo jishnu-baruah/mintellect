@@ -422,7 +422,7 @@ export default function DocumentsPage() {
       console.log('Sending request to server:', requestBody)
 
       // Use the new S3 PDF generation endpoint
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const response = await fetch(`${API_URL}/api/pdf/generate-plagiarism-report-s3`, {
         method: 'POST',
         headers: {
