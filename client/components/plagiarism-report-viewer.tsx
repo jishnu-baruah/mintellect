@@ -203,7 +203,7 @@ export function PlagiarismReportViewer({
       };
 
       // Call server-side PDF generation endpoint (direct approach)
-      const response = await fetch(`http://localhost:5000/api/pdf/generate-plagiarism-report-direct`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf/generate-plagiarism-report-direct`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
