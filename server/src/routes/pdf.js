@@ -47,6 +47,35 @@ const getLogoBase64 = () => {
 
 
 
+// Test endpoint for simple PDF generation
+router.get('/test-pdf', async (req, res) => {
+  try {
+    console.log('Testing simple PDF generation...');
+    
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      executablePath: process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    await page.setContent('<h1>Test PDF</h1><p>This is a test PDF generation.</p>');
+    
+    const pdf = await page.pdf({ format: 'A4' });
+    await browser.close();
+    
+    console.log('Test PDF generated, size:', pdf.length, 'bytes');
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="test.pdf"');
+    res.end(pdf);
+    
+  } catch (error) {
+    console.error('Test PDF generation failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Test endpoint to verify logo loading
 router.get('/test-logo', (req, res) => {
   try {
@@ -120,17 +149,21 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
       const page = await browser.newPage();
       
       try {
+        console.log('Setting viewport...');
         // Set viewport for consistent rendering
         await page.setViewport({ width: 1200, height: 800 });
         
+        console.log('Setting content...');
         // Set content and wait for it to be fully rendered
         await page.setContent(htmlContent, { 
           waitUntil: ['networkidle0', 'domcontentloaded', 'load']
         });
         
+        console.log('Waiting for rendering...');
         // Additional wait to ensure everything is rendered
         await new Promise(resolve => setTimeout(resolve, 2000));
         
+        console.log('Generating PDF...');
         // Generate PDF with production-optimized settings
         pdf = await page.pdf({
           format: 'A4',
@@ -142,8 +175,11 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
           timeout: 30000
         });
         
+        console.log('PDF generation completed successfully');
+        
         console.log('PDF generated, size:', pdf.length, 'bytes');
         console.log('PDF first 100 bytes:', pdf.slice(0, 100).toString('hex'));
+        console.log('PDF header check:', pdf.slice(0, 4).toString('ascii'));
       } catch (browserError) {
         console.error('Browser error:', browserError);
         throw new Error(`PDF generation failed: ${browserError.message}`);
@@ -157,44 +193,53 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
     } catch (puppeteerError) {
       console.error('Puppeteer error:', puppeteerError);
       
-      // Try alternative PDF generation method
-      try {
-        console.log('Attempting alternative PDF generation...');
-        
-        const browser = await puppeteer.launch({
-          headless: 'new',
-          executablePath: process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-          args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--no-first-run'
-          ]
-        });
-        
-        const page = await browser.newPage();
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        pdf = await page.pdf({
-          format: 'A4',
-          margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
-          printBackground: false,
-          displayHeaderFooter: false,
-          preferCSSPageSize: false,
-          omitBackground: true
-        });
-        
-        await browser.close();
-        
-        console.log('Alternative PDF generation successful, size:', pdf.length, 'bytes');
-        
-        // Verify PDF
-        const pdfHeader = pdf.slice(0, 4).toString('ascii');
-        if (pdfHeader !== '%PDF') {
-          throw new Error('Alternative PDF generation also failed');
-        }
+             // Try alternative PDF generation method
+       try {
+         console.log('Attempting alternative PDF generation...');
+         
+         const browser = await puppeteer.launch({
+           headless: 'new',
+           executablePath: process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+           args: [
+             '--no-sandbox', 
+             '--disable-setuid-sandbox',
+             '--disable-dev-shm-usage',
+             '--disable-gpu',
+             '--no-first-run'
+           ]
+         });
+         
+         console.log('Alternative browser launched successfully');
+         const page = await browser.newPage();
+         console.log('Alternative page created');
+         
+         await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+         console.log('Alternative content set');
+         
+         await new Promise(resolve => setTimeout(resolve, 3000));
+         console.log('Alternative rendering wait completed');
+         
+         pdf = await page.pdf({
+           format: 'A4',
+           margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
+           printBackground: false,
+           displayHeaderFooter: false,
+           preferCSSPageSize: false,
+           omitBackground: true
+         });
+         
+         console.log('Alternative PDF generated, size:', pdf.length, 'bytes');
+         await browser.close();
+         console.log('Alternative browser closed');
+         
+         console.log('Alternative PDF generation successful, size:', pdf.length, 'bytes');
+         
+         // Verify PDF
+         const pdfHeader = pdf.slice(0, 4).toString('ascii');
+         console.log('Alternative PDF header:', pdfHeader);
+         if (pdfHeader !== '%PDF') {
+           throw new Error('Alternative PDF generation also failed');
+         }
         
       } catch (alternativeError) {
         console.error('Alternative PDF generation failed:', alternativeError);
