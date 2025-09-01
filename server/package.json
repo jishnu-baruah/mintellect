@@ -11,6 +11,9 @@
     "lint": "next lint",
     "build": "next build",
     "postinstall": "npx puppeteer browsers install chrome || echo 'Chrome installation failed, will use alternative method'",
+    "install-chrome": "npx puppeteer browsers install chrome",
+    "setup": "npm run install-chrome",
+    "install-chrome-manual": "node install-chrome.js"
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

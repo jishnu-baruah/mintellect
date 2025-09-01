@@ -27,16 +27,16 @@ const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'mintellect-pdfs';
 const getLogoBase64 = () => {
   try {
     const logoPath = path.join(process.cwd(), 'src', 'public', 'img', 'Mintellect_logo.png');
-    console.log('Looking for logo at:', logoPath);
-    if (fs.existsSync(logoPath)) {
-      console.log('Logo file found!');
-      const logoBuffer = fs.readFileSync(logoPath);
-      const base64Logo = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-      console.log('Logo converted to base64, length:', base64Logo.length);
-      return base64Logo;
+      console.log('Looking for logo at:', logoPath);
+      if (fs.existsSync(logoPath)) {
+        console.log('Logo file found!');
+        const logoBuffer = fs.readFileSync(logoPath);
+        const base64Logo = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+        console.log('Logo converted to base64, length:', base64Logo.length);
+        return base64Logo;
     } else {
       console.log('Logo file not found at:', logoPath);
-    }
+      }
   } catch (error) {
     console.error('Error reading logo file:', error);
   }
@@ -123,9 +123,41 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
     
     try {
       // Launch Puppeteer with production-ready settings
+      console.log('Chrome paths:', {
+        CHROME_BIN: process.env.CHROME_BIN,
+        PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH
+      });
+      
+      // Try to find Chrome in common locations
+      const possibleChromePaths = [
+        process.env.CHROME_BIN,
+        process.env.PUPPETEER_EXECUTABLE_PATH,
+        '/usr/bin/google-chrome',
+        '/usr/bin/chromium-browser',
+        '/usr/bin/chromium',
+        '/opt/google/chrome/chrome',
+        '/usr/bin/google-chrome-stable'
+      ].filter(Boolean);
+      
+      console.log('Possible Chrome paths:', possibleChromePaths);
+      
+      let executablePath;
+      for (const path of possibleChromePaths) {
+        try {
+          const fs = await import('fs');
+          if (fs.existsSync(path)) {
+            executablePath = path;
+            console.log('Found Chrome at:', executablePath);
+            break;
+          }
+        } catch (e) {
+          console.log('Could not check path:', path);
+        }
+      }
+      
       const browser = await puppeteer.launch({
         headless: 'new',
-        executablePath: process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+        executablePath: executablePath,
         args: [
           '--no-sandbox', 
           '--disable-setuid-sandbox',
@@ -145,8 +177,8 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
           '--disable-ipc-flooding-protection'
         ]
       });
-      
-      const page = await browser.newPage();
+    
+    const page = await browser.newPage();
       
       try {
         console.log('Setting viewport...');
@@ -166,10 +198,10 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
         console.log('Generating PDF...');
         // Generate PDF with production-optimized settings
         pdf = await page.pdf({
-          format: 'A4',
-          margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
+      format: 'A4',
+      margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
           printBackground: true,
-          displayHeaderFooter: false,
+      displayHeaderFooter: false,
           preferCSSPageSize: true,
           omitBackground: false,
           timeout: 30000
@@ -197,8 +229,8 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
        try {
          console.log('Attempting alternative PDF generation...');
          
-         const browser = await puppeteer.launch({
-           headless: 'new',
+    const browser = await puppeteer.launch({
+      headless: 'new',
            executablePath: process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
            args: [
              '--no-sandbox', 
@@ -210,26 +242,26 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
          });
          
          console.log('Alternative browser launched successfully');
-         const page = await browser.newPage();
+    const page = await browser.newPage();
          console.log('Alternative page created');
          
-         await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
          console.log('Alternative content set');
          
          await new Promise(resolve => setTimeout(resolve, 3000));
          console.log('Alternative rendering wait completed');
          
          pdf = await page.pdf({
-           format: 'A4',
-           margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
-           printBackground: false,
-           displayHeaderFooter: false,
-           preferCSSPageSize: false,
-           omitBackground: true
-         });
-         
+      format: 'A4',
+      margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
+      printBackground: false,
+      displayHeaderFooter: false,
+      preferCSSPageSize: false,
+      omitBackground: true
+    });
+    
          console.log('Alternative PDF generated, size:', pdf.length, 'bytes');
-         await browser.close();
+    await browser.close();
          console.log('Alternative browser closed');
          
          console.log('Alternative PDF generation successful, size:', pdf.length, 'bytes');
@@ -251,7 +283,9 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
          
-         // Extract just the body content from the generated HTML, removing the duplicate HTML structure
+         // Extract CSS and body content from the generated HTML
+         const cssMatch = htmlContent.match(/<style>([\s\S]*)<\/style>/i);
+         const cssContent = cssMatch ? cssMatch[1] : '';
          const bodyContentMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
          const bodyContent = bodyContentMatch ? bodyContentMatch[1] : htmlContent;
          
@@ -262,6 +296,8 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
              <title>Plagiarism Report - ${documentName}</title>
              <meta charset="UTF-8">
              <style>
+               ${cssContent}
+               
                @media print {
                  body { margin: 0; padding: 20px; }
                  .no-print { display: none; }
@@ -375,15 +411,15 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
     console.log('PDF header:', pdfHeader);
     
     // Generate filename
-    const timestamp = Date.now();
-    const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const filename = `${sanitizedName}_plagiarism_report_${timestamp}.pdf`;
-    
+        const timestamp = Date.now();
+        const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const filename = `${sanitizedName}_plagiarism_report_${timestamp}.pdf`;
+        
     console.log('PDF generated, sending directly to client:', filename);
-    
+        
     // Set headers for PDF download
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', pdf.length);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
