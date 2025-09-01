@@ -6,6 +6,14 @@ import fs from 'fs';
 
 const router = express.Router();
 
+// Handle preflight requests for PDF endpoints
+router.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(200).end();
+});
+
 // Configure AWS S3
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -143,6 +151,9 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', pdf.length);
     res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
     // Send PDF as Buffer
     res.send(Buffer.from(pdf));
