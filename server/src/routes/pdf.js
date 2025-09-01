@@ -90,46 +90,106 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
     console.log('HTML content generated, length:', htmlContent.length);
     console.log('HTML content preview:', htmlContent.substring(0, 500));
     
-    // Launch Puppeteer with more robust settings
-    const browser = await puppeteer.launch({
-      headless: 'new',
-      args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
-      ]
-    });
-    
-    const page = await browser.newPage();
-    
     let pdf;
+    
     try {
-      // Set viewport for consistent rendering
-      await page.setViewport({ width: 1200, height: 800 });
-      
-      // Set content and wait for it to be fully rendered
-      await page.setContent(htmlContent, { 
-        waitUntil: ['networkidle0', 'domcontentloaded', 'load']
+      // Launch Puppeteer with production-ready settings
+      const browser = await puppeteer.launch({
+        headless: 'new',
+        executablePath: process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+        args: [
+          '--no-sandbox', 
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--no-first-run',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-images',
+          '--disable-javascript',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-field-trial-config',
+          '--disable-ipc-flooding-protection'
+        ]
       });
       
-      // Additional wait to ensure everything is rendered
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const page = await browser.newPage();
       
-      // Generate PDF with simplified settings
-      pdf = await page.pdf({
-        format: 'A4',
-        margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
-        printBackground: false,
-        displayHeaderFooter: false,
-        preferCSSPageSize: false,
-        omitBackground: true
-      });
-    } finally {
-      await browser.close();
+      try {
+        // Set viewport for consistent rendering
+        await page.setViewport({ width: 1200, height: 800 });
+        
+        // Set content and wait for it to be fully rendered
+        await page.setContent(htmlContent, { 
+          waitUntil: ['networkidle0', 'domcontentloaded', 'load']
+        });
+        
+        // Additional wait to ensure everything is rendered
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Generate PDF with simplified settings
+        pdf = await page.pdf({
+          format: 'A4',
+          margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
+          printBackground: false,
+          displayHeaderFooter: false,
+          preferCSSPageSize: false,
+          omitBackground: true
+        });
+      } catch (browserError) {
+        console.error('Browser error:', browserError);
+        throw new Error(`PDF generation failed: ${browserError.message}`);
+      } finally {
+        try {
+          await browser.close();
+        } catch (closeError) {
+          console.error('Error closing browser:', closeError);
+        }
+      }
+    } catch (puppeteerError) {
+      console.error('Puppeteer error:', puppeteerError);
+      
+      // Fallback: Return HTML content with instructions
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Content-Disposition', `attachment; filename="${documentName}_report.html"`);
+      res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      
+      const fallbackHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>PDF Generation Failed</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .error { color: red; }
+            .instructions { background: #f0f0f0; padding: 15px; border-radius: 5px; }
+          </style>
+        </head>
+        <body>
+          <h1>PDF Generation Temporarily Unavailable</h1>
+          <p class="error">The PDF generation service is currently experiencing technical difficulties.</p>
+          <div class="instructions">
+            <h3>Alternative Options:</h3>
+            <ol>
+              <li>Try again in a few minutes</li>
+              <li>Use the "Print to PDF" feature in your browser (Ctrl+P or Cmd+P)</li>
+              <li>Contact support if the issue persists</li>
+            </ol>
+          </div>
+          <hr>
+          <h2>Report Content:</h2>
+          ${htmlContent}
+        </body>
+        </html>
+      `;
+      
+      return res.send(fallbackHtml);
     }
     
     // Verify PDF was generated correctly
