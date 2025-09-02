@@ -106,21 +106,21 @@ class WorkflowArchiveService {
 
   /**
    * Get list of archived workflows for a user
-   * @param {string} userId - User ID
+   * @param {string} walletAddress - User's wallet address
    * @returns {Promise<Array>} List of archives
    */
-  async getArchivedWorkflows(userId = 'anonymous') {
+  async getArchivedWorkflows(walletAddress = 'anonymous') {
     try {
       if (!this.bucketName) {
         console.warn('[WorkflowArchiveService] AWS S3 bucket not configured, returning empty list');
         return [];
       }
 
-      console.log(`[WorkflowArchiveService] Getting archives for user: ${userId}`);
+      console.log(`[WorkflowArchiveService] Getting archives for wallet: ${walletAddress}`);
 
       const listParams = {
         Bucket: this.bucketName,
-        Prefix: `workflows/${userId}/`,
+        Prefix: `workflows/${walletAddress}/`,
         MaxKeys: 100,
       };
 
