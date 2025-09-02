@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 
-const CONTRACT_ADDRESS = '0x85ab510c1d219e207916a8c8a36a33ce56f3ef6e';
+const CONTRACT_ADDRESS = '0xadB0b68EE8c15b9F9E99ECf9A36a5BF17AC06864';
 const CONTRACT_ABI = [
   {
     "inputs": [

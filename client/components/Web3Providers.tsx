@@ -18,8 +18,8 @@ const educhainTestnet = {
     symbol: 'EDU',
   },
   rpcUrls: {
-    default: { http: ['https://open-campus-codex-sepolia.drpc.org'] },
-    public: { http: ['https://open-campus-codex-sepolia.drpc.org'] },
+    default: { http: ['https://rpc.open-campus-codex.gelato.digital'] },
+    public: { http: ['https://rpc.open-campus-codex.gelato.digital'] },
   },
   blockExplorers: {
     default: { name: 'Blockscout', url: 'https://edu-chain-testnet.blockscout.com' },
@@ -43,7 +43,7 @@ const config = createConfig({
   chains,
   connectors,
   transports: {
-    [educhainTestnet.id]: http('https://open-campus-codex-sepolia.drpc.org'),
+    [educhainTestnet.id]: http('https://rpc.open-campus-codex.gelato.digital'),
   },
 });
 

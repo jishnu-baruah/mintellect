@@ -68,7 +68,7 @@ const educhainTestnet = {
 #### Test NFT Minting
 1. Complete a workflow
 2. Reach the NFT minting step
-3. Verify it uses Educhain contract: `0x85ab510c1d219e207916a8c8a36a33ce56f3ef6e`
+3. Verify it uses Educhain contract: `0xadB0b68EE8c15b9F9E99ECf9A36a5BF17AC06864`
 
 ### 6. Troubleshooting
 

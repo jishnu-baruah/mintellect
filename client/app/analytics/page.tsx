@@ -27,7 +27,7 @@ import { motion } from "framer-motion"
 import { useWallet } from "@/hooks/useWallet"
 // import { useAccount, useContractRead } from 'wagmi';
 
-const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004"
+const CONTRACT_ADDRESS = "0xadB0b68EE8c15b9F9E99ECf9A36a5BF17AC06864"
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 
 export default function AnalyticsPage() {

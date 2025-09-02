@@ -3,7 +3,17 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.js --network educhain",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "test:gas": "hardhat run scripts/test-gas.js --network educhain",
+    "test:gas:local": "hardhat run scripts/test-gas.js --network localhost",
+    "verify": "hardhat verify --network educhain",
+    "verify:network": "hardhat run scripts/verify-network.js --network educhain",
+    "test:compile": "hardhat run scripts/test-compile.js",
+    "node": "hardhat node",
+    "clean": "hardhat clean"
   },
   "keywords": [],
   "author": "",

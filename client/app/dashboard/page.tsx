@@ -14,7 +14,7 @@ import { Upload, ArrowRight, FileText, Clock, CheckCircle, AlertCircle, Play, Sh
 // import { useWallet } from "@/hooks/useWallet"
 import { workflowPersistence } from "@/lib/workflow-persistence"
 
-const CONTRACT_ADDRESS = "0x4c899A624F23Fe64E9e820b62CfEd4aFAAA93004";
+const CONTRACT_ADDRESS = "0xadB0b68EE8c15b9F9E99ECf9A36a5BF17AC06864";
 
 interface RecentActivity {
   id: string
