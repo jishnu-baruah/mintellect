@@ -14,17 +14,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
+import { WalletDisconnectBrowserNotification } from "@/components/ui/browser-notification"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false)
   const { walletConnected, walletAddress, disconnectWallet } = useWallet()
   const router = useRouter()
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
 
   const handleDisconnect = () => {
-    disconnectWallet()
+    console.log('Navbar: handleDisconnect called, setting modal to true');
+    setShowDisconnectModal(true)
     setIsMenuOpen(false)
+  }
+
+  const confirmDisconnect = () => {
+    disconnectWallet()
+    setShowDisconnectModal(false)
   }
 
   const handleProfile = () => {
@@ -267,6 +275,14 @@ export function Navbar() {
           </div>
         </div>
       )}
+      
+      {/* Wallet Disconnect Confirmation Modal */}
+      {console.log('Navbar: Modal state:', showDisconnectModal)}
+              <WalletDisconnectBrowserNotification
+          isOpen={showDisconnectModal}
+          onClose={() => setShowDisconnectModal(false)}
+          onConfirm={confirmDisconnect}
+        />
     </div>
     </nav>
   )

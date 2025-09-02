@@ -3,7 +3,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { RippleButton } from "@/components/ui/ripple-button"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { User, Lock, Bell, Shield, CreditCard } from "lucide-react"
+import { User, Lock, Bell, Shield, CreditCard, Star } from "lucide-react"
 
 function SettingsTabBar() {
   const pathname = usePathname();
@@ -45,36 +45,32 @@ export default function BillingSettings() {
       <SettingsTabBar />
       <GlassCard>
         <h2 className="text-xl font-bold mb-6">Billing</h2>
+        
         <div className="mb-6">
-          <div className="bg-mintellect-primary/10 border border-mintellect-primary rounded-lg p-4 flex items-start gap-4 mb-6">
-            <div className="p-2 bg-mintellect-primary/20 rounded-full">
-              <Shield className="h-6 w-6 text-mintellect-primary" />
+          <div className="bg-green-500/10 border border-green-500 rounded-lg p-6 flex items-start gap-4">
+            <div className="p-3 bg-green-500/20 rounded-full">
+              <Star className="h-6 w-6 text-green-500" />
             </div>
-            <div>
-              <h3 className="font-semibold text-mintellect-primary">Premium Plan</h3>
-              <p className="text-sm text-gray-300">Renews on May 15, 2023</p>
-              <div className="flex gap-3 mt-2">
-                <button className="text-sm text-mintellect-primary hover:underline">Change</button>
-                <button className="text-sm text-red-400 hover:underline">Cancel</button>
+            <div className="flex-1">
+              <h3 className="font-semibold text-green-500 text-lg">Free Beta Plan</h3>
+              <p className="text-sm text-gray-300 mb-2">You're currently on our free beta plan</p>
+              <div className="bg-gray-800/50 rounded-lg p-3">
+                <h4 className="font-medium text-white mb-2">What's Included:</h4>
+                <ul className="text-sm text-gray-300 space-y-1">
+                  <li>• Unlimited document uploads</li>
+                  <li>• Plagiarism detection</li>
+                  <li>• Trust score analysis</li>
+                  <li>• NFT minting</li>
+                  <li>• Full access to all features</li>
+                </ul>
+              </div>
+              <div className="mt-4">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
+                  No Payment Required
+                </span>
               </div>
             </div>
           </div>
-          <h3 className="font-semibold mb-4">Payment Method</h3>
-          <div className="bg-gray-800 rounded-lg p-4 mb-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-700 rounded">
-                  <CreditCard className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-medium">•••• 4242</p>
-                  <p className="text-sm text-gray-400">Expires 12/25</p>
-                </div>
-              </div>
-              <button className="text-sm text-mintellect-primary hover:underline">Edit</button>
-            </div>
-          </div>
-          <button className="text-sm text-mintellect-primary hover:underline">+ Add Payment Method</button>
         </div>
         
         <div className="flex justify-start mt-12">

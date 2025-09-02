@@ -184,20 +184,16 @@ class WorkflowPersistenceService {
   }
 
   /**
-   * Archive document and workflow data to AWS S3
+   * Archive workflow data to AWS S3
    */
-  async archiveWorkflow(workflowData: WorkflowArchiveData): Promise<string> {
+  async archiveWorkflow(workflowData: WorkflowArchiveData, walletAddress?: string): Promise<string> {
     try {
-      console.log('Archiving workflow to AWS S3...');
-
-      // Defensive: Ensure documentFile is a real File
-      if (!(workflowData.documentFile instanceof File)) {
-        toast({
-          title: "Cannot Archive",
-          description: "The document file is missing or invalid. Please re-upload the file before archiving.",
-          variant: "destructive",
-        });
+      if (!workflowData.documentFile || !(workflowData.documentFile instanceof File)) {
         throw new Error("documentFile is not a File object");
+      }
+
+      if (!walletAddress) {
+        throw new Error("Wallet address is required for archiving");
       }
 
       // Create archive payload
@@ -240,6 +236,7 @@ class WorkflowPersistenceService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-wallet': walletAddress
         },
         body: JSON.stringify(archiveData),
       });
@@ -327,7 +324,7 @@ class WorkflowPersistenceService {
   /**
    * Get list of archived workflows for user
    */
-  async getArchivedWorkflows(): Promise<Array<{
+  async getArchivedWorkflows(walletAddress?: string): Promise<Array<{
     documentId: string;
     documentName: string;
     archiveUrl: string;
@@ -336,7 +333,16 @@ class WorkflowPersistenceService {
     status: 'completed' | 'in_progress' | 'archived';
   }>> {
     try {
-      const response = await fetch('/api/workflow/archives');
+      if (!walletAddress) {
+        console.warn('No wallet address provided for getArchivedWorkflows');
+        return [];
+      }
+
+      const response = await fetch('/api/workflow/archives', {
+        headers: {
+          'x-wallet': walletAddress
+        }
+      });
       
       if (!response.ok) {
         throw new Error(`Failed to fetch archives: ${response.status}`);

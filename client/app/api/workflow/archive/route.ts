@@ -3,12 +3,21 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const walletAddress = request.headers.get('x-wallet');
+    
+    if (!walletAddress) {
+      return NextResponse.json(
+        { success: false, error: 'Wallet address is required' },
+        { status: 400 }
+      );
+    }
     
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     const response = await fetch(`${API_URL}/api/workflow/archive`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-wallet': walletAddress
       },
       body: JSON.stringify(body),
     });

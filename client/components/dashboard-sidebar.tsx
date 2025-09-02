@@ -11,6 +11,7 @@ import { useIsMobile } from "@/components/ui/use-mobile";
 import React from "react";
 import { useRouter } from "next/navigation"
 import { useWallet } from "@/hooks/useWallet"
+import { WalletDisconnectBrowserNotification } from "@/components/ui/browser-notification"
 
 // Minimal portal-based tooltip for sidebar
 function SidebarTooltip({ children, label }: { children: React.ReactNode, label: string }) {
@@ -70,6 +71,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
   // Prevent hydration mismatch by only rendering wallet state on client
   useEffect(() => {
@@ -135,6 +137,24 @@ export function DashboardSidebar({ className }: { className?: string }) {
     }
   };
 
+  // Handle wallet disconnect with smart logic
+  const handleDisconnect = () => {
+    // If sidebar is collapsed (space-constrained), disconnect directly
+    // If sidebar is expanded (full screen), show confirmation modal
+    if (collapsedFinal) {
+      console.log('Sidebar collapsed - disconnecting directly');
+      disconnectWallet();
+    } else {
+      console.log('Sidebar expanded - showing confirmation modal');
+      setShowDisconnectModal(true);
+    }
+  };
+
+  const confirmDisconnect = () => {
+    disconnectWallet();
+    setShowDisconnectModal(false);
+  };
+
   if (isMobile) {
     return (
       <aside
@@ -186,7 +206,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
         {/* Bottom section (wallet/socials) */}
         <div className="flex flex-col items-center gap-2 mt-auto mb-2">
           <button
-            onClick={walletConnected ? disconnectWallet : connectWallet}
+            onClick={walletConnected ? handleDisconnect : connectWallet}
             className={cn(
               "w-12 h-12 flex items-center justify-center rounded-xl border transition-colors",
               walletConnected
@@ -422,7 +442,7 @@ export function DashboardSidebar({ className }: { className?: string }) {
       )}>
         {/* Wallet Connect Button */}
         <button
-          onClick={isClient && walletConnected ? disconnectWallet : connectWallet}
+                      onClick={isClient && walletConnected ? handleDisconnect : connectWallet}
           className={cn(
             "w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors min-w-0",
             isClient && walletConnected
@@ -449,6 +469,14 @@ export function DashboardSidebar({ className }: { className?: string }) {
           </a>
         </div>
       </div>
+              {/* Wallet Disconnect Confirmation Modal - only shown when sidebar is expanded */}
+        {showDisconnectModal && (
+          <WalletDisconnectBrowserNotification
+            isOpen={showDisconnectModal}
+            onClose={() => setShowDisconnectModal(false)}
+            onConfirm={confirmDisconnect}
+          />
+        )}
     </div>
   )
 }
