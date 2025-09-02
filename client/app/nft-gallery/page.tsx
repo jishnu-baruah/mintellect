@@ -8,6 +8,7 @@ import { Shield, Search, Filter, ExternalLink } from "lucide-react"
 import Link from "next/link"
 // import { useAccount, useContractRead } from 'wagmi';
 import contractABI from "@/lib/MintellectNFT_ABI.json"
+import { useWallet } from "@/hooks/useWallet"
 
 const CONTRACT_ADDRESS = "0xadB0b68EE8c15b9F9E99ECf9A36a5BF17AC06864"
 
@@ -27,8 +28,8 @@ export default function NFTGalleryPage() {
   const [certificates, setCertificates] = useState<NFTCertificate[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // const { address } = useAccount();
-  const address = '0x0000000000000000000000000000000000000000';
+  const { walletAddress, walletConnected } = useWallet();
+  const address = walletAddress || '0x0000000000000000000000000000000000000000';
 
   // Read tokenCounter
   // const { data: total, isLoading: isTotalLoading } = useContractRead({
@@ -42,10 +43,15 @@ export default function NFTGalleryPage() {
 
   useEffect(() => {
     const fetchNFTs = async () => {
+      // Only fetch NFTs if wallet is connected
+      if (!walletConnected || !walletAddress) {
+        setCertificates([]);
+        return;
+      }
+
       setLoading(true)
       setError(null)
       try {
-        if (!address) throw new Error("Wallet not connected")
         const nfts: NFTCertificate[] = []
         for (let i = 0; i < Number(total); i++) {
           try {
@@ -62,7 +68,8 @@ export default function NFTGalleryPage() {
               functionName: 'ownerOf',
               args: [tokenId],
             })
-            if (owner.toLowerCase() !== address.toLowerCase()) continue
+            // Only include NFTs owned by current user
+            if (owner.toLowerCase() !== walletAddress.toLowerCase()) continue
             // Fetch metadata from IPFS
             const ipfsUrl = tokenURI.startsWith("ipfs://")
               ? `https://gateway.pinata.cloud/ipfs/${tokenURI.replace("ipfs://", "")}`
@@ -90,7 +97,7 @@ export default function NFTGalleryPage() {
       }
     }
     fetchNFTs()
-  }, [address, total])
+  }, [walletAddress, walletConnected, total])
 
   const filteredCertificates = certificates.filter((cert) => {
     const matchesSearch =

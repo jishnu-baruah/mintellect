@@ -9,6 +9,7 @@ import Link from "next/link"
 import { workflowPersistence, type WorkflowState } from "@/lib/workflow-persistence"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { useWallet } from "@/hooks/useWallet"
 
 export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -28,6 +29,7 @@ export default function DocumentsPage() {
 
   const router = useRouter();
   const { toast } = useToast();
+  const { walletAddress, walletConnected } = useWallet();
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
   const PLAGIARISM_API_URL = process.env.NEXT_PUBLIC_PLAGIARISM_API_URL || '';
@@ -194,6 +196,14 @@ export default function DocumentsPage() {
   // Load current workflow and archived workflows
   useEffect(() => {
     const loadWorkflows = async () => {
+      // Only load workflows if wallet is connected
+      if (!walletConnected || !walletAddress) {
+        setCurrentWorkflow(null);
+        setArchivedWorkflows([]);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true)
         
@@ -201,8 +211,8 @@ export default function DocumentsPage() {
         const current = workflowPersistence.getWorkflowState()
         setCurrentWorkflow(current)
         
-        // Get archived workflows
-        const archives = await workflowPersistence.getArchivedWorkflows()
+        // Get archived workflows for current user
+        const archives = await workflowPersistence.getArchivedWorkflows(walletAddress)
         setArchivedWorkflows(archives)
       } catch (error) {
         console.error('Failed to load workflows:', error)
@@ -212,7 +222,7 @@ export default function DocumentsPage() {
     }
     
     loadWorkflows()
-  }, []) // Only run once on mount
+  }, [walletConnected, walletAddress]) // Re-run when wallet connection changes
 
   // Memoize allWorkflows to prevent infinite loops
   const allWorkflows = useMemo(() => [

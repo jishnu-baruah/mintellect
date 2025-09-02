@@ -11,7 +11,7 @@ import { Upload, ArrowRight, FileText, Clock, CheckCircle, AlertCircle, Play, Sh
 // import { useAccount, useContractRead } from 'wagmi';
 // import { createPublicClient, http } from 'viem';
 // import contractABI from "@/lib/MintellectNFT_ABI.json";
-// import { useWallet } from "@/hooks/useWallet"
+import { useWallet } from "@/hooks/useWallet"
 import { workflowPersistence } from "@/lib/workflow-persistence"
 
 const CONTRACT_ADDRESS = "0xadB0b68EE8c15b9F9E99ECf9A36a5BF17AC06864";
@@ -33,8 +33,8 @@ export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState("")
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
   const [activityLoading, setActivityLoading] = useState(false)
-  // const { address } = useAccount();
-  const address = '0x0000000000000000000000000000000000000000';
+  const { walletAddress, walletConnected } = useWallet()
+  const address = walletAddress || '0x0000000000000000000000000000000000000000';
   // Only use the hook at the top level for static values
   // const { data: total } = useContractRead({
   //   address: CONTRACT_ADDRESS,
@@ -89,14 +89,22 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchRecentActivities = async () => {
+      // Only fetch activities if wallet is connected
+      if (!walletConnected || !walletAddress) {
+        setRecentActivities([]);
+        return;
+      }
+
       setActivityLoading(true)
       try {
         const activities: RecentActivity[] = []
         const seenDocumentIds = new Set<string>()
 
-        // 1. Get current workflow
+        // 1. Get current workflow (only if it belongs to current user)
         const currentWorkflow = workflowPersistence.getWorkflowState()
         if (currentWorkflow && currentWorkflow.documentId) {
+          // Check if current workflow belongs to current user
+          // For now, we'll assume current workflow belongs to user
           seenDocumentIds.add(currentWorkflow.documentId)
           activities.push({
             id: currentWorkflow.documentId,
@@ -110,9 +118,9 @@ export default function Dashboard() {
           })
         }
 
-        // 2. Get archived workflows (only if not already seen)
+        // 2. Get archived workflows (only for current user)
         try {
-          const archivedWorkflows = await workflowPersistence.getArchivedWorkflows()
+          const archivedWorkflows = await workflowPersistence.getArchivedWorkflows(walletAddress)
           const recentArchives = archivedWorkflows
             .filter(workflow => {
               // Skip if we've already seen this document ID
@@ -142,8 +150,8 @@ export default function Dashboard() {
           console.error('Failed to fetch archived workflows:', error)
         }
 
-        // 3. Get recent NFTs (only if not already seen)
-        if (address && total) {
+        // 3. Get recent NFTs (only for current user)
+        if (address && total && walletAddress) {
           for (let i = Number(total) - 1; i >= 0 && activities.length < 6; i--) {
             try {
               const tokenId = BigInt(i);
@@ -162,7 +170,9 @@ export default function Dashboard() {
                   args: [tokenId],
                 }),
               ]);
-              if (owner.toLowerCase() !== address.toLowerCase()) continue;
+              
+              // Only include NFTs owned by current user
+              if (owner.toLowerCase() !== walletAddress.toLowerCase()) continue;
               
               const ipfsUrl = tokenURI.startsWith("ipfs://")
                 ? `https://gateway.pinata.cloud/ipfs/${tokenURI.replace("ipfs://", "")}`
@@ -195,6 +205,7 @@ export default function Dashboard() {
         
         // Debug logging
         console.log('Recent Activities Debug:', {
+          walletAddress,
           currentWorkflow: currentWorkflow?.documentId,
           seenDocumentIds: Array.from(seenDocumentIds),
           totalActivities: activities.length,
@@ -209,7 +220,7 @@ export default function Dashboard() {
       setActivityLoading(false)
     }
     fetchRecentActivities()
-  }, [address, total])
+  }, [walletAddress, walletConnected, total])
 
   const getWorkflowStatus = (workflow: any) => {
     if (!workflow) return 'unknown'

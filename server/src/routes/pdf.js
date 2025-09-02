@@ -6,6 +6,14 @@ import fs from 'fs';
 
 const router = express.Router();
 
+// Handle preflight requests for PDF endpoints
+router.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(200).end();
+});
+
 // Configure AWS S3
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -19,16 +27,16 @@ const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'mintellect-pdfs';
 const getLogoBase64 = () => {
   try {
     const logoPath = path.join(process.cwd(), 'src', 'public', 'img', 'Mintellect_logo.png');
-    console.log('Looking for logo at:', logoPath);
-    if (fs.existsSync(logoPath)) {
-      console.log('Logo file found!');
-      const logoBuffer = fs.readFileSync(logoPath);
-      const base64Logo = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-      console.log('Logo converted to base64, length:', base64Logo.length);
-      return base64Logo;
+      console.log('Looking for logo at:', logoPath);
+      if (fs.existsSync(logoPath)) {
+        console.log('Logo file found!');
+        const logoBuffer = fs.readFileSync(logoPath);
+        const base64Logo = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+        console.log('Logo converted to base64, length:', base64Logo.length);
+        return base64Logo;
     } else {
       console.log('Logo file not found at:', logoPath);
-    }
+      }
   } catch (error) {
     console.error('Error reading logo file:', error);
   }
@@ -36,6 +44,37 @@ const getLogoBase64 = () => {
   console.log('Using fallback text logo');
   return null;
 };
+
+
+
+// Test endpoint for simple PDF generation
+router.get('/test-pdf', async (req, res) => {
+  try {
+    console.log('Testing simple PDF generation...');
+    
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      executablePath: process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    await page.setContent('<h1>Test PDF</h1><p>This is a test PDF generation.</p>');
+    
+    const pdf = await page.pdf({ format: 'A4' });
+    await browser.close();
+    
+    console.log('Test PDF generated, size:', pdf.length, 'bytes');
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="test.pdf"');
+    res.end(pdf);
+    
+  } catch (error) {
+    console.error('Test PDF generation failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Test endpoint to verify logo loading
 router.get('/test-logo', (req, res) => {
@@ -63,12 +102,19 @@ router.get('/test-logo', (req, res) => {
   }
 });
 
-// Fallback PDF generation (for testing without AWS credentials)
-router.post('/generate-plagiarism-report-local', async (req, res) => {
+// Direct PDF generation (sends PDF directly to client)
+router.post('/generate-plagiarism-report-direct', async (req, res) => {
   try {
-    console.log('Generating PDF locally (fallback)...');
+    console.log('Generating PDF and sending directly to client...');
     
     const { plagiarismData, documentName, sources } = req.body;
+    
+    console.log('Received data:', {
+      hasPlagiarismData: !!plagiarismData,
+      documentName,
+      sourcesCount: sources ? sources.length : 0,
+      sources: sources
+    });
     
     if (!plagiarismData || !documentName) {
       return res.status(400).json({ error: 'Missing required data' });
@@ -77,18 +123,142 @@ router.post('/generate-plagiarism-report-local', async (req, res) => {
     // Generate HTML content for the PDF
     const htmlContent = generatePlagiarismReportHTML(plagiarismData, documentName, sources);
     
-    // Launch Puppeteer
+    console.log('HTML content generated, length:', htmlContent.length);
+    console.log('HTML content preview:', htmlContent.substring(0, 500));
+    
+    let pdf;
+    
+    try {
+      // Launch Puppeteer with production-ready settings
+      console.log('Chrome paths:', {
+        CHROME_BIN: process.env.CHROME_BIN,
+        PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH
+      });
+      
+      // Try to find Chrome in common locations
+      const possibleChromePaths = [
+        process.env.CHROME_BIN,
+        process.env.PUPPETEER_EXECUTABLE_PATH,
+        '/usr/bin/google-chrome',
+        '/usr/bin/chromium-browser',
+        '/usr/bin/chromium',
+        '/opt/google/chrome/chrome',
+        '/usr/bin/google-chrome-stable'
+      ].filter(Boolean);
+      
+      console.log('Possible Chrome paths:', possibleChromePaths);
+      
+      let executablePath;
+      for (const path of possibleChromePaths) {
+        try {
+          const fs = await import('fs');
+          if (fs.existsSync(path)) {
+            executablePath = path;
+            console.log('Found Chrome at:', executablePath);
+            break;
+          }
+        } catch (e) {
+          console.log('Could not check path:', path);
+        }
+      }
+      
     const browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+        executablePath: executablePath,
+        args: [
+          '--no-sandbox', 
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--no-first-run',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-images',
+          '--disable-javascript',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-field-trial-config',
+          '--disable-ipc-flooding-protection'
+        ]
     });
     
     const page = await browser.newPage();
+      
+      try {
+        console.log('Setting viewport...');
+        // Set viewport for consistent rendering
+        await page.setViewport({ width: 1200, height: 800 });
+        
+        console.log('Setting content...');
+        // Set content and wait for it to be fully rendered
+        await page.setContent(htmlContent, { 
+          waitUntil: ['networkidle0', 'domcontentloaded', 'load']
+        });
+        
+        console.log('Waiting for rendering...');
+        // Additional wait to ensure everything is rendered
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        console.log('Generating PDF...');
+        // Generate PDF with production-optimized settings
+        pdf = await page.pdf({
+      format: 'A4',
+      margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
+          printBackground: true,
+      displayHeaderFooter: false,
+          preferCSSPageSize: true,
+          omitBackground: false,
+          timeout: 30000
+        });
+        
+        console.log('PDF generation completed successfully');
+        
+        console.log('PDF generated, size:', pdf.length, 'bytes');
+        console.log('PDF first 100 bytes:', pdf.slice(0, 100).toString('hex'));
+        console.log('PDF header check:', pdf.slice(0, 4).toString('ascii'));
+      } catch (browserError) {
+        console.error('Browser error:', browserError);
+        throw new Error(`PDF generation failed: ${browserError.message}`);
+      } finally {
+        try {
+          await browser.close();
+        } catch (closeError) {
+          console.error('Error closing browser:', closeError);
+        }
+      }
+    } catch (puppeteerError) {
+      console.error('Puppeteer error:', puppeteerError);
+      
+             // Try alternative PDF generation method
+       try {
+         console.log('Attempting alternative PDF generation...');
+         
+    const browser = await puppeteer.launch({
+      headless: 'new',
+           executablePath: process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+           args: [
+             '--no-sandbox', 
+             '--disable-setuid-sandbox',
+             '--disable-dev-shm-usage',
+             '--disable-gpu',
+             '--no-first-run'
+           ]
+         });
+         
+         console.log('Alternative browser launched successfully');
+    const page = await browser.newPage();
+         console.log('Alternative page created');
+         
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Generate PDF
-    const pdf = await page.pdf({
+         console.log('Alternative content set');
+         
+         await new Promise(resolve => setTimeout(resolve, 3000));
+         console.log('Alternative rendering wait completed');
+         
+         pdf = await page.pdf({
       format: 'A4',
       margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
       printBackground: false,
@@ -97,35 +267,181 @@ router.post('/generate-plagiarism-report-local', async (req, res) => {
       omitBackground: true
     });
     
+         console.log('Alternative PDF generated, size:', pdf.length, 'bytes');
     await browser.close();
-    
-    // Save PDF locally for testing
-    const uploadsDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+         console.log('Alternative browser closed');
+         
+         console.log('Alternative PDF generation successful, size:', pdf.length, 'bytes');
+         
+         // Verify PDF
+         const pdfHeader = pdf.slice(0, 4).toString('ascii');
+         console.log('Alternative PDF header:', pdfHeader);
+         if (pdfHeader !== '%PDF') {
+           throw new Error('Alternative PDF generation also failed');
+         }
+        
+      } catch (alternativeError) {
+        console.error('Alternative PDF generation failed:', alternativeError);
+        
+                 // Final fallback: Return enhanced HTML content that can be easily converted to PDF
+         res.setHeader('Content-Type', 'text/html; charset=utf-8');
+         res.setHeader('Content-Disposition', `inline; filename="${documentName}_report.html"`);
+         res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+         
+         // Extract CSS and body content from the generated HTML
+         const cssMatch = htmlContent.match(/<style>([\s\S]*)<\/style>/i);
+         const cssContent = cssMatch ? cssMatch[1] : '';
+         const bodyContentMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+         const bodyContent = bodyContentMatch ? bodyContentMatch[1] : htmlContent;
+         
+         const fallbackHtml = `
+           <!DOCTYPE html>
+           <html>
+           <head>
+             <title>Plagiarism Report - ${documentName}</title>
+             <meta charset="UTF-8">
+             <style>
+               ${cssContent}
+               
+               @media print {
+                 body { margin: 0; padding: 20px; }
+                 .no-print { display: none; }
+                 .page-break { page-break-before: always; }
+               }
+               
+               body { 
+                 font-family: Arial, sans-serif; 
+                 padding: 20px; 
+                 margin: 0;
+                 background: white;
+                 color: #333;
+               }
+               
+               .instructions {
+                 background: #f8f9fa;
+                 padding: 15px;
+                 border-radius: 8px;
+                 margin-bottom: 20px;
+                 border-left: 4px solid #6366f1;
+                 text-align: center;
+               }
+               
+               .instructions h3 {
+                 margin-top: 0;
+                 color: #6366f1;
+               }
+               
+               .instructions ol {
+                 margin: 10px 0;
+                 padding-left: 20px;
+                 text-align: left;
+               }
+               
+               .instructions li {
+                 margin: 5px 0;
+               }
+               
+               .print-button {
+                 background: #6366f1;
+                 color: white;
+                 border: none;
+                 padding: 10px 20px;
+                 border-radius: 5px;
+                 cursor: pointer;
+                 font-size: 16px;
+                 margin: 10px 5px;
+               }
+               
+               .print-button:hover {
+                 background: #4f46e5;
+               }
+               
+               .no-print {
+                 margin: 20px 0;
+               }
+               
+               .report-content {
+                 margin-top: 30px;
+               }
+             </style>
+           </head>
+           <body>
+             <div class="no-print">
+               <div class="instructions">
+                 <h3>📄 How to Save as PDF:</h3>
+                 <ol>
+                   <li><strong>Press Ctrl+P (Windows) or Cmd+P (Mac)</strong></li>
+                   <li>Select "Save as PDF" as the destination</li>
+                   <li>Choose your preferred settings</li>
+                   <li>Click "Save" to download the PDF</li>
+                 </ol>
+                 <button class="print-button" onclick="window.print()">🖨️ Print/Save as PDF</button>
+                 <button class="print-button" onclick="window.close()">❌ Close</button>
+               </div>
+             </div>
+             
+             <div class="report-content">
+               ${bodyContent}
+             </div>
+             
+             <script>
+               // Auto-print dialog on load (optional)
+               // window.onload = function() {
+               //   setTimeout(() => {
+               //     window.print();
+               //   }, 1000);
+               // }
+             </script>
+           </body>
+           </html>
+         `;
+         
+         return res.send(fallbackHtml);
+      }
     }
     
-    const timestamp = Date.now();
-    const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const filename = `${sanitizedName}_plagiarism_report_${timestamp}.pdf`;
-    const filePath = path.join(uploadsDir, filename);
+    // Verify PDF was generated correctly
+    if (!pdf || pdf.length === 0) {
+      throw new Error('PDF generation failed - empty result');
+    }
     
-    fs.writeFileSync(filePath, pdf);
+    // Check if PDF starts with the correct magic number
+    const pdfHeader = pdf.slice(0, 4).toString('ascii');
+    if (pdfHeader !== '%PDF') {
+      console.error('Invalid PDF header:', pdfHeader);
+      throw new Error('PDF generation failed - invalid PDF format');
+    }
     
-    console.log('PDF saved locally:', filePath);
+    console.log('PDF generated successfully, size:', pdf.length, 'bytes');
+    console.log('PDF header:', pdfHeader);
     
-    res.json({
-      success: true,
-      message: 'PDF generated and saved locally',
-      filename: filename,
-      localPath: filePath,
-      note: 'This is a local fallback. For production, use S3 endpoint.'
-    });
+    // Generate filename
+        const timestamp = Date.now();
+        const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const filename = `${sanitizedName}_plagiarism_report_${timestamp}.pdf`;
+        
+    console.log('PDF generated, sending directly to client:', filename);
+        
+    // Set headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdf.length);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    // Send PDF directly as Buffer
+    res.end(pdf);
     
   } catch (error) {
-    console.error('Local PDF generation error:', error);
+    console.error('Direct PDF generation error:', error);
     res.status(500).json({ 
-      error: 'Failed to generate PDF locally', 
+      error: 'Failed to generate PDF', 
       details: error.message 
     });
   }
@@ -560,7 +876,18 @@ function generatePlagiarismReportHTML(plagiarismData, documentName, sources) {
             </div>
           `).join('')}
         </div>
-      ` : ''}
+      ` : `
+        <div class="sources-section">
+          <h3 class="sources-title">Plagiarism Sources (0)</h3>
+          <div class="source-item">
+            <div class="source-info">
+              <div class="source-name">No sources detected</div>
+              <div class="source-url">This document appears to be original or no matching sources were found</div>
+            </div>
+            <div class="source-percentage">0%</div>
+          </div>
+        </div>
+      `}
       
       <div class="footer">
         <div>Generated by Mintellect</div>

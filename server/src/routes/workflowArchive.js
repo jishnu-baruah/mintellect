@@ -19,8 +19,15 @@ router.post('/archive', async (req, res) => {
       });
     }
 
-    // Get user ID from request (you can implement your own auth logic)
-    const userId = req.headers['x-user-id'] || 'anonymous';
+    // Get wallet address from request headers
+    const walletAddress = req.headers['x-wallet'];
+    
+    if (!walletAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'Wallet address is required'
+      });
+    }
 
     // Add 'step' to workflowData
     const workflowData = {
@@ -36,12 +43,12 @@ router.post('/archive', async (req, res) => {
         ...metadata,
         createdAt: metadata.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        userId,
+        walletAddress,
       },
       step // <-- ensure step is included
     };
 
-    const archiveUrl = await workflowArchiveService.archiveWorkflow(workflowData, userId);
+    const archiveUrl = await workflowArchiveService.archiveWorkflow(workflowData, walletAddress);
 
     res.json({
       success: true,
@@ -98,10 +105,19 @@ router.get('/resume', async (req, res) => {
  */
 router.get('/archives', async (req, res) => {
   try {
-    // Get user ID from request (you can implement your own auth logic)
-    const userId = req.headers['x-user-id'] || 'anonymous';
+    // Get wallet address from request headers
+    const walletAddress = req.headers['x-wallet'];
+    
+    if (!walletAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'Wallet address is required'
+      });
+    }
 
-    const archives = await workflowArchiveService.getArchivedWorkflows(userId);
+    console.log(`[WorkflowArchive] Getting archives for wallet: ${walletAddress}`);
+
+    const archives = await workflowArchiveService.getArchivedWorkflows(walletAddress);
 
     res.json({
       success: true,

@@ -17,6 +17,7 @@ import { HumanReviewInterface } from "@/components/human-review-interface"
 import { renderAsync } from 'docx-preview';
 import { workflowPersistence, type WorkflowState } from "@/lib/workflow-persistence"
 import { useToast } from "@/hooks/use-toast"
+import { useWallet } from "@/hooks/useWallet"
 
 export default function WorkflowPage() {
   const router = useRouter()
@@ -33,6 +34,7 @@ export default function WorkflowPage() {
   const [archivedWorkflows, setArchivedWorkflows] = useState<Array<any>>([]);
   const [isArchiving, setIsArchiving] = useState(false);
   const { toast } = useToast();
+  const { walletAddress, walletConnected } = useWallet();
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [formattedCreatedAt, setFormattedCreatedAt] = useState('');
   const [isLoading, setIsLoading] = useState(false)
@@ -409,7 +411,10 @@ export default function WorkflowPage() {
           }
         };
 
-        await workflowPersistence.archiveWorkflow(archiveData);
+        if (!walletAddress) {
+          throw new Error('Wallet not connected');
+        }
+        await workflowPersistence.archiveWorkflow(archiveData, walletAddress);
         console.log('Workflow archived successfully');
         
         // Clear workflow state immediately to prevent duplicates
@@ -500,7 +505,10 @@ export default function WorkflowPage() {
           updatedAt: new Date().toISOString(),
         }
       };
-      await workflowPersistence.archiveWorkflow(archiveData);
+      if (!walletAddress) {
+        throw new Error('Wallet not connected');
+      }
+      await workflowPersistence.archiveWorkflow(archiveData, walletAddress);
       toast({
         title: 'Saved as Draft/Archive',
         description: 'You can resume this workflow from the Documents page.',

@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useProfileChecklist, useProfileStatus } from "@/hooks/useProfileChecklist"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
@@ -60,8 +60,8 @@ function SettingsTabBar() {
 
 export default function ProfileSettings() {
   // SWR hooks for profile and checklist
-  const { profileComplete, checking, walletConnected, walletAddress } = useProfileStatus();
-  const { checklist, allComplete, loading, error, isNewUser } = useProfileChecklist();
+  const { profileComplete, checking, walletConnected, walletAddress, refresh: refreshProfile } = useProfileStatus();
+  const { checklist, allComplete, loading, error, isNewUser, refresh: refreshChecklist } = useProfileChecklist();
 
   // Profile form state
   const [form, setForm] = useState<Record<string, string>>({
@@ -76,17 +76,19 @@ export default function ProfileSettings() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Handler for form field changes
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  }
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  }, []);
 
   // Handler for save button
-  async function handleSave() {
+  const handleSave = useCallback(async () => {
     setSaving(true);
     setSaveError("");
     setSaveSuccess(false);
+    
     try {
       const formData = new FormData();
       formData.append("wallet", walletAddress || "");
@@ -96,32 +98,42 @@ export default function ProfileSettings() {
       formData.append("institution", form.institution);
       formData.append("bio", form.bio);
       if (avatarFile) formData.append("avatar", avatarFile);
+      
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings/profile/profile`, {
         method: "POST",
         body: formData,
         headers: { "x-wallet": walletAddress }
       });
+      
       if (!res.ok) throw new Error("Failed to save profile");
+      
       setSaveSuccess(true);
+      
+      // Invalidate caches to refresh profile status and checklist
+      setTimeout(() => {
+        refreshProfile();
+        refreshChecklist();
+      }, 100);
+      
     } catch (err) {
       setSaveError("Could not save profile. Please try again.");
     } finally {
       setSaving(false);
     }
-  }
+  }, [form, avatarFile, walletAddress, refreshProfile, refreshChecklist]);
 
-  // Prefill form with existing profile data
+  // Prefill form with existing profile data - only run once when wallet connects
   useEffect(() => {
-    if (!walletConnected || !walletAddress) return;
-    const allFieldsEmpty = Object.values(form).every((v) => !v);
-    if (!allFieldsEmpty) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings/profile/profile?wallet=${walletAddress}`)
-      .then(res => {
+    if (!walletConnected || !walletAddress || hasInitialized) return;
+    
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings/profile/profile?wallet=${walletAddress}`);
         if (!res.ok) throw new Error("Failed to fetch profile");
-        return res.json();
-      })
-      .then(data => {
-        console.log("Fetched profile data:", data); // Debug
+        
+        const data = await res.json();
+        console.log("Fetched profile data:", data);
+        
         if (data && data.profile) {
           setForm({
             firstName: data.profile.name?.split(' ')[0] || "",
@@ -132,11 +144,15 @@ export default function ProfileSettings() {
             avatarUrl: data.profile.avatar || ""
           });
         }
-      })
-      .catch((err) => {
+        setHasInitialized(true);
+      } catch (err) {
         console.error("Profile fetch error:", err);
-      });
-  }, [walletConnected, walletAddress]);
+        setHasInitialized(true); // Mark as initialized even on error to prevent infinite retries
+      }
+    };
+
+    fetchProfile();
+  }, [walletConnected, walletAddress, hasInitialized]);
 
   // Show cached content immediately if available
   if (checking && !profileComplete) return <div className="flex items-center justify-center h-[60vh]"><span className="text-lg text-gray-400">Checking profile status...</span></div>;
@@ -202,12 +218,11 @@ export default function ProfileSettings() {
           </div>
           <div className="flex-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {checklist.filter(req => !["avatar", "wallet", "telegram", "twitter"].includes(req.key)).map(req => (
+              {checklist.filter((req: ChecklistItem) => !["avatar", "wallet", "telegram", "twitter"].includes(req.key)).map((req: ChecklistItem) => (
                 <div key={req.key}>
                   <label className="block text-sm font-medium mb-1">
                     {req.label}
-                    {req.required && <span className="text-red-500 ml-1">*</span>}
-                    {!req.required && <span className="text-gray-400 ml-1">(optional)</span>}
+                    <span className="text-gray-400 ml-1">(required)</span>
                   </label>
                   <input
                     name={req.key}
@@ -216,7 +231,7 @@ export default function ProfileSettings() {
                     type="text"
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-mintellect-primary"
                     placeholder={`Enter ${req.label.toLowerCase()}`}
-                    required={req.required}
+                    required={true}
                   />
                 </div>
               ))}

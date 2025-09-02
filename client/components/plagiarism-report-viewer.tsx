@@ -202,8 +202,8 @@ export function PlagiarismReportViewer({
         sources: uniqueSources
       };
 
-      // Call server-side PDF generation endpoint (S3 approach)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf/generate-plagiarism-report-s3`, {
+      // Call server-side PDF generation endpoint (direct approach)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf/generate-plagiarism-report-direct`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -216,19 +216,52 @@ export function PlagiarismReportViewer({
         throw new Error(`Failed to generate PDF: ${response.status} ${response.statusText}`);
       }
 
-      const result = await response.json();
+      console.log('Response headers:', response.headers);
+      console.log('Response status:', response.status);
+      console.log('Content-Type:', response.headers.get('content-type'));
+
+      // Get the response blob
+      const responseBlob = await response.blob();
       
-      if (!result.success || !result.downloadUrl) {
-        throw new Error('Server did not return a valid download URL');
+      console.log('Response blob size:', responseBlob.size);
+      console.log('Response blob type:', responseBlob.type);
+      
+      // Check if it's HTML (fallback) or PDF
+      console.log('Response type check:', responseBlob.type);
+      console.log('Content-Disposition:', response.headers.get('content-disposition'));
+      
+      if (responseBlob.type === 'text/html') {
+        // It's the HTML fallback - download as HTML file
+        console.log('Downloading HTML report...');
+        const url = window.URL.createObjectURL(responseBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `plagiarism_report_${Date.now()}.html`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Report Downloaded",
+          description: "HTML report downloaded. Open it in your browser and use Ctrl+P to save as PDF.",
+        })
+      } else {
+        // It's a PDF - download directly
+        const url = window.URL.createObjectURL(responseBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `plagiarism_report_${Date.now()}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        toast({
+          title: "PDF Generated Successfully",
+          description: "PDF downloaded to your computer",
+        })
       }
-
-      // Open the S3 download URL in a new tab
-      window.open(result.downloadUrl, '_blank');
-
-      toast({
-        title: "PDF Ready for Download",
-        description: "Your plagiarism report PDF has been generated and is ready for download.",
-      })
     } catch (error) {
       console.error('Error generating PDF:', error)
       toast({
