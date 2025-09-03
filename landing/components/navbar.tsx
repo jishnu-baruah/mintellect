@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X, ChevronRight, Send, Rocket } from "lucide-react"
 import { XIcon } from "@/components/icons/x-icon"
 import { cn } from "@/lib/utils"
@@ -15,15 +15,7 @@ export function Navbar() {
   const pathname = usePathname()
   const [prevScrollY, setPrevScrollY] = useState(0)
   const [visible, setVisible] = useState(true)
-  const [hoverLink, setHoverLink] = useState<string | null>(null)
-  const mouseX = useMotionValue(0)
-  const mouseY = useMotionValue(0)
   const navRef = useRef<HTMLElement>(null)
-
-  // Smooth spring animation for mouse movement
-  const springConfig = { damping: 25, stiffness: 300 }
-  const mouseXSpring = useSpring(mouseX, springConfig)
-  const mouseYSpring = useSpring(mouseY, springConfig)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -44,19 +36,7 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [prevScrollY])
 
-  // Track mouse position for glow effect
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (navRef.current) {
-        const rect = navRef.current.getBoundingClientRect()
-        mouseX.set(e.clientX - rect.left)
-        mouseY.set(e.clientY - rect.top)
-      }
-    }
 
-    window.addEventListener("mousemove", handleMouseMove)
-    return () => window.removeEventListener("mousemove", handleMouseMove)
-  }, [mouseX, mouseY])
 
   const toggleMenu = () => {
     setIsOpen(!isOpen)
@@ -79,9 +59,7 @@ export function Navbar() {
     }
   ]
 
-  // Radial gradient for hover effect
-  const size = 200
-  const glowOpacity = useTransform(mouseYSpring, [0, 100], [0.1, 0.3])
+
 
   return (
     <header
@@ -89,63 +67,12 @@ export function Navbar() {
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
         scrolled 
-          ? "bg-black/60 backdrop-blur-xl after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-blue-900/50 after:to-transparent py-3" 
-          : "bg-transparent py-5",
+          ? "backdrop-blur-xl after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-blue-900/50 after:to-transparent py-3" 
+          : "py-5",
         visible ? "transform-none" : "-translate-y-full",
       )}
     >
-      {/* Animated background glow effect */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none overflow-hidden"
-        style={{ opacity: scrolled ? 1 : 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-blue-900/10 via-blue-800/5 to-blue-900/10"
-          animate={{
-            backgroundPosition: ["0% 0%", "100% 0%"],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Number.POSITIVE_INFINITY,
-            repeatType: "reverse",
-            ease: "linear",
-          }}
-        />
 
-        {/* Animated lines */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(3)].map((_, i) => (
-            <motion.div
-              key={`line-${i}`}
-              className="absolute h-px w-full bg-blue-500/10"
-              style={{ top: `${25 + i * 25}%` }}
-              animate={{
-                x: ["-100%", "100%"],
-                opacity: [0.1, 0.3, 0.1],
-              }}
-              transition={{
-                duration: 15 + i * 5,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: "linear",
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Radial glow that follows mouse */}
-        <motion.div
-          className="absolute rounded-full bg-blue-500/10 pointer-events-none"
-          style={{
-            width: size,
-            height: size,
-            x: useTransform(mouseXSpring, (value) => value - size / 2),
-            y: useTransform(mouseYSpring, (value) => value - size / 2),
-            opacity: glowOpacity,
-            boxShadow: "0 0 40px 20px rgba(59, 130, 246, 0.15)",
-          }}
-        />
-      </motion.div>
 
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
@@ -159,21 +86,7 @@ export function Navbar() {
                 transition: { duration: 0.5 },
               }}
             >
-              <motion.div
-                className="absolute inset-0 rounded-full"
-                animate={{
-                  boxShadow: [
-                    "0 0 0 0 rgba(59, 130, 246, 0)",
-                    "0 0 0 8px rgba(59, 130, 246, 0.1)",
-                    "0 0 0 0 rgba(59, 130, 246, 0)",
-                  ],
-                }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Number.POSITIVE_INFINITY,
-                  repeatType: "loop",
-                }}
-              />
+
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 375 375"
@@ -295,7 +208,7 @@ export function Navbar() {
               transition: { duration: 0.3, ease: "easeInOut" },
             }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="md:hidden bg-gradient-to-b from-black/90 to-blue-950/80 backdrop-blur-xl border-b border-blue-900/30 overflow-hidden"
+            className="md:hidden backdrop-blur-xl border-b border-blue-900/30 overflow-hidden"
           >
             <div className="container mx-auto px-4 py-6">
               <nav className="flex flex-col space-y-5">
@@ -310,7 +223,7 @@ export function Navbar() {
                   <ExpandedTabs 
                     tabs={navItems}
                     activeColor="text-blue-500"
-                    className="border-blue-900/20 dark:border-blue-800/20 bg-black/20"
+                    className="border-blue-900/20 dark:border-blue-800/20"
                   />
                 </motion.div>
               </nav>
@@ -329,29 +242,7 @@ export function Navbar() {
               </motion.div>
             </div>
 
-            {/* Background particles */}
-            <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-              {[...Array(6)].map((_, i) => (
-                <motion.div
-                  key={`particle-${i}`}
-                  className="absolute w-1 h-1 rounded-full bg-blue-400/30"
-                  style={{
-                    left: `${Math.random() * 100}%`,
-                    top: `${Math.random() * 100}%`,
-                  }}
-                  animate={{
-                    y: [0, -20],
-                    opacity: [0, 0.7, 0],
-                    scale: [0, 1, 0],
-                  }}
-                  transition={{
-                    duration: 2 + Math.random() * 2,
-                    repeat: Number.POSITIVE_INFINITY,
-                    delay: Math.random() * 2,
-                  }}
-                />
-              ))}
-            </div>
+
           </motion.div>
         )}
       </AnimatePresence>

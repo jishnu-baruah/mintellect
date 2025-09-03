@@ -81,6 +81,14 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Background Ripple Effect Variables */
+    --color-neutral-100: 245 245 245;
+    --color-neutral-300: 212 212 212;
+    --color-neutral-500: 115 115 115;
+    --color-neutral-700: 64 64 64;
+    --color-neutral-800: 38 38 38;
+    --color-neutral-900: 23 23 23;
   }
 }
 
@@ -90,5 +98,16 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Background Ripple Effect Utilities */
+@layer utilities {
+  .mask-radial-from-20\% {
+    mask-image: radial-gradient(ellipse 80% 50% at 50% 20%, black, transparent);
+  }
+  
+  .mask-radial-at-top {
+    mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black, transparent);
   }
 }

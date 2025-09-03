@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { AnimatedBackground } from "@/components/ui/animated-background"
+
 import { motion, useScroll, useTransform } from "framer-motion"
 import {
   ArrowRight,
@@ -19,10 +19,16 @@ import {
   CheckCircle,
   Lock,
   Users,
+  Send,
 } from "lucide-react"
 import Link from "next/link"
+import { XIcon } from "@/components/icons/x-icon"
 import { Navbar } from "@/components/navbar"
-import GridBackground from "@/components/ui/grid-background"
+import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect"
+import { ShootingStars } from "@/components/ui/shooting-stars"
+import { StarsBackground } from "@/components/ui/stars-background"
+import MintellectTestimonials from "@/components/mintellect-testimonials"
+
 import PageLoader from "@/components/page-loader"
 
 // Define data outside the component to avoid re-creation on each render
@@ -44,7 +50,7 @@ const WORKFLOW_STEPS = [
   },
   {
     title: "Human Review",
-    description: "Real researchers from the community review your paper.",
+    description: "Experienced researchers from the community review your paper.",
     icon: Users,
   },
   {
@@ -56,15 +62,15 @@ const WORKFLOW_STEPS = [
 
 const AI_CAPABILITIES = [
   {
-    title: "Multi-Agent Verification System",
+    title: "Multi-AI System Verification",
     description:
-      "Our specialized AI agents work collaboratively to verify research integrity with unprecedented accuracy",
+      "Our specialized AI systems work collaboratively to verify research integrity with unprecedented accuracy",
     icon: Brain,
     link: "#neural-text-analysis",
   },
   {
     title: "Plagiarism Detection",
-    description: "99.7% accuracy across academic databases.",
+    description: "Human reviewers verify originality against academic databases.",
     icon: FileSearch,
     link: "#plagiarism-detection",
   },
@@ -163,7 +169,7 @@ export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [scrollY, setScrollY] = useState(0)
   const [activeSection, setActiveSection] = useState("hero")
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+
 
   // Add this to the beginning of the component
   const sectionRefs = {
@@ -172,6 +178,8 @@ export default function LandingPage() {
     tech: useRef(null),
     verification: useRef(null),
     workflow: useRef(null),
+    community: useRef(null),
+    testimonials: useRef(null),
     cta: useRef(null),
   }
 
@@ -182,6 +190,8 @@ export default function LandingPage() {
   const techSectionRef = useRef<HTMLDivElement>(null)
   const verificationSectionRef = useRef<HTMLDivElement>(null)
   const workflowSectionRef = useRef<HTMLDivElement>(null)
+  const communitySectionRef = useRef<HTMLDivElement>(null)
+  const testimonialsSectionRef = useRef<HTMLDivElement>(null)
   const ctaSectionRef = useRef<HTMLDivElement>(null)
 
   // Scroll progress for parallax effects
@@ -222,42 +232,59 @@ export default function LandingPage() {
   const ctaY = useTransform(ctaProgress, [0, 1], [60, -40])
 
   // Track mouse for interactive effects
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY })
-    }
 
-    window.addEventListener("mousemove", handleMouseMove)
-    return () => window.removeEventListener("mousemove", handleMouseMove)
-  }, [])
 
-  // Determine active section based on scroll position
+  // Determine active section based on scroll position with improved accuracy
   useEffect(() => {
     const handleScroll = () => {
       setScrollY(window.scrollY)
+      const scrollY = window.scrollY
+      const windowHeight = window.innerHeight
 
       const sections = [
-        { ref: heroRef, id: "hero" },
-        { ref: capabilitiesSectionRef, id: "capabilities" },
-        { ref: techSectionRef, id: "tech" },
-        { ref: verificationSectionRef, id: "verification" },
-        { ref: workflowSectionRef, id: "workflow" },
-        { ref: ctaSectionRef, id: "cta" },
+        { ref: heroRef, id: "hero", offset: 0 },
+        { ref: capabilitiesSectionRef, id: "capabilities", offset: 100 },
+        { ref: verificationSectionRef, id: "verification", offset: 100 },
+        { ref: workflowSectionRef, id: "workflow", offset: 100 },
+        { ref: communitySectionRef, id: "community", offset: 100 },
+        { ref: testimonialsSectionRef, id: "testimonials", offset: 100 },
+        { ref: ctaSectionRef, id: "cta", offset: 100 },
       ]
+
+      let activeSection = "hero"
+      let minDistance = Infinity
 
       for (const section of sections) {
         if (!section.ref.current) continue
 
         const rect = section.ref.current.getBoundingClientRect()
-        if (rect.top <= window.innerHeight * 0.5 && rect.bottom >= window.innerHeight * 0.5) {
-          setActiveSection(section.id)
-          break
+        const sectionTop = rect.top + scrollY
+        const sectionCenter = sectionTop + rect.height / 2
+        const distance = Math.abs(scrollY + windowHeight / 2 - sectionCenter)
+
+        if (distance < minDistance) {
+          minDistance = distance
+          activeSection = section.id
         }
+      }
+
+      setActiveSection(activeSection)
+    }
+
+    // Throttle scroll events for better performance
+    let ticking = false
+    const throttledHandleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll()
+          ticking = false
+        })
+        ticking = true
       }
     }
 
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
+    window.addEventListener("scroll", throttledHandleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", throttledHandleScroll)
   }, [])
 
   // Handle loading completion
@@ -291,9 +318,46 @@ export default function LandingPage() {
     // Add a custom class to improve section transitions
     document.body.classList.add("smooth-scroll")
 
-    // Add CSS to the head for smoother transitions
+    // Add CSS to the head for smoother transitions and hidden scrollbars
     const style = document.createElement("style")
     style.textContent = `
+/* Hide scrollbar for all browsers - More aggressive approach */
+html, body {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* Internet Explorer 10+ */
+  overflow-x: hidden !important;
+}
+
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Hide scrollbar for any scrollable elements */
+* {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* Internet Explorer 10+ */
+}
+
+*::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Additional scrollbar hiding for specific elements */
+.scrollbar-hidden {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 .smooth-scroll section {
   transition: opacity 0.4s ease, transform 0.4s ease;
 }
@@ -305,24 +369,14 @@ section:not(.section-active) {
   opacity: 0.9;
   transform: translateY(5px);
 }
-.animate-gradient-x {
-  background-size: 200% 100%;
-  animation: gradientFlow 4s linear infinite;
-}
-@keyframes gradientFlow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-.animate-blink {
-  animation: blink 1s step-end infinite;
-}
 `
     document.head.appendChild(style)
+
+    // Also apply scrollbar hiding directly to html and body
+    document.documentElement.style.scrollbarWidth = 'none'
+    document.documentElement.style.msOverflowStyle = 'none'
+    document.body.style.scrollbarWidth = 'none'
+    document.body.style.msOverflowStyle = 'none'
 
     return () => {
       document.documentElement.style.scrollBehavior = ""
@@ -331,15 +385,43 @@ section:not(.section-active) {
     }
   }, [])
 
-  // Add this effect for smooth section transitions
+  // Global scrollbar hiding effect
+  useEffect(() => {
+    // Force hide scrollbars globally
+    const globalStyle = document.createElement("style")
+    globalStyle.textContent = `
+      html, body {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+        overflow-x: hidden !important;
+      }
+      html::-webkit-scrollbar, body::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+      }
+      *::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+      }
+    `
+    globalStyle.id = 'global-scrollbar-hide'
+    document.head.appendChild(globalStyle)
+
+    return () => {
+      if (document.getElementById('global-scrollbar-hide')) {
+        document.head.removeChild(globalStyle)
+      }
+    }
+  }, [])
+
+  // Add this effect for smooth section transitions (without interfering with active section detection)
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const sectionId = entry.target.id
-            setActiveSection(sectionId)
-
             // Add a class to the section for transition effects
             entry.target.classList.add("section-active")
 
@@ -382,69 +464,83 @@ section:not(.section-active) {
 
   return (
     <div
-      className="min-h-screen bg-black text-white overflow-x-hidden scroll-smooth transition-all duration-500"
+      className="min-h-screen bg-black text-white overflow-x-hidden scroll-smooth transition-all duration-500 scrollbar-hidden"
       ref={containerRef}
+      style={{
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+        WebkitScrollbar: { display: 'none' }
+      }}
     >
-      {/* Dynamic background with parallax effect */}
-      <div className="fixed inset-0 -z-10">
-        <AnimatedBackground />
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-b from-black via-gray-950 to-black opacity-90"
-          style={{
-            backgroundPosition: `${50 + mousePosition.x * 10}% ${50 + mousePosition.y * 10}%`,
-            willChange: "transform, opacity",
-          }}
-        />
+      {/* Stars Background - Full Page (Fixed) */}
+      <StarsBackground 
+        starDensity={0.0001}
+        allStarsTwinkle={true}
+        twinkleProbability={0.9}
+        minTwinkleSpeed={0.6}
+        maxTwinkleSpeed={1.2}
+        className="z-0"
+      />
+      
+      {/* Shooting Stars - Full Page (Fixed) */}
+      <ShootingStars 
+        minSpeed={20}
+        maxSpeed={40}
+        minDelay={1500}
+        maxDelay={4000}
+        starColor="#60a5fa"
+        trailColor="#93c5fd"
+        starWidth={12}
+        starHeight={2}
+        className="z-0"
+      />
 
-        {/* Dynamic grid pattern that reacts to mouse movement */}
-        <motion.div
-          className="absolute inset-0 bg-grid-pattern opacity-10"
-          style={{
-            backgroundPosition: `${mousePosition.x * 20}px ${mousePosition.y * 20}px`,
-            backgroundSize: `${60 + mousePosition.x * 10}px ${60 + mousePosition.y * 10}px`,
-            willChange: "transform, opacity",
-          }}
-        />
 
-        {/* Glowing orbs that follow mouse movement */}
-        <motion.div
-          className="absolute rounded-full bg-blue-500/5 blur-3xl"
-          style={{
-            width: "40vw",
-            height: "40vw",
-            left: `${mousePosition.x * 100}%`,
-            top: `${mousePosition.y * 100}%`,
-            transform: "translate(-50%, -50%)",
-            willChange: "transform, opacity",
-          }}
-        />
-      </div>
-
-      {/* Futuristic navigation indicator */}
+      {/* Enhanced scroll navigation indicator */}
       <div className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50 hidden lg:block">
         <div className="flex flex-col items-center gap-6">
-          {["hero", "capabilities", "tech", "verification", "workflow", "cta"].map((section) => (
+          {["hero", "capabilities", "verification", "workflow", "community", "testimonials", "cta"].map((section) => (
             <motion.div
               key={section}
-              className="relative w-3 h-3 rounded-full cursor-pointer"
+              className="relative w-4 h-4 rounded-full cursor-pointer group"
               animate={{
-                backgroundColor: activeSection === section ? "rgba(59, 130, 246, 0.8)" : "rgba(59, 130, 246, 0.2)",
-                scale: activeSection === section ? 1.2 : 1,
+                backgroundColor: activeSection === section ? "rgba(59, 130, 246, 0.9)" : "rgba(59, 130, 246, 0.3)",
+                scale: activeSection === section ? 1.3 : 1,
+                borderColor: activeSection === section ? "rgba(59, 130, 246, 0.8)" : "rgba(59, 130, 246, 0.2)",
               }}
-              whileHover={{ scale: 1.3 }}
+              whileHover={{ 
+                scale: 1.4,
+                backgroundColor: "rgba(59, 130, 246, 0.7)"
+              }}
+              transition={{ duration: 0.2 }}
               onClick={() => {
                 const element = document.getElementById(section)
-                if (element) element.scrollIntoView({ behavior: "smooth" })
+                if (element) {
+                  element.scrollIntoView({ 
+                    behavior: "smooth",
+                    block: "center"
+                  })
+                }
+              }}
+              style={{
+                border: "2px solid",
+                borderColor: activeSection === section ? "rgba(59, 130, 246, 0.8)" : "rgba(59, 130, 246, 0.2)"
               }}
             >
+              {/* Active section indicator */}
               {activeSection === section && (
                 <motion.div
-                  className="absolute inset-0 rounded-full bg-blue-500/30"
-                  initial={{ scale: 1 }}
-                  animate={{ scale: [1, 1.8, 1], opacity: [1, 0, 1] }}
-                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+                  className="absolute inset-0 rounded-full bg-blue-500/40"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.3 }}
                 />
               )}
+              
+              {/* Hover tooltip */}
+              <div className="absolute right-full mr-3 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                {section.charAt(0).toUpperCase() + section.slice(1)}
+              </div>
             </motion.div>
           ))}
         </div>
@@ -459,22 +555,15 @@ section:not(.section-active) {
           ref={heroRef}
           className="relative min-h-[100vh] flex items-center justify-center overflow-visible pt-8 pb-0 sm:pt-12 md:pt-16 lg:pt-20 transition-all duration-1000"
         >
-          {/* Enhanced 3D Grid Background */}
-          <div className="absolute inset-0 -z-5 perspective-[1500px]">
-            <motion.div
-              className="absolute inset-0"
-              style={{
-                transformStyle: "preserve-3d",
-                transform: `rotateX(${5 + mousePosition.y * 10}deg) rotateY(${-5 + mousePosition.x * 10}deg)`,
-                willChange: "transform, opacity",
-              }}
-            >
-              <GridBackground gridColor="#3b82f6" fadeColor="#000000" />
-            </motion.div>
-          </div>
-
           {/* Main hero content with enhanced 3D effects and optimized for performance */}
           <div className="container mx-auto px-2 sm:px-4 md:px-6 relative z-10 w-full">
+            {/* Background Ripple Effect - Larger Container */}
+            <BackgroundRippleEffect 
+              rows={10} 
+              cols={20} 
+              cellSize={50}
+              className="opacity-30 absolute inset-0"
+            />
             <motion.div
               className="flex flex-col items-center justify-center min-h-[80vh] perspective-[1200px]"
               style={{
@@ -498,57 +587,7 @@ section:not(.section-active) {
                     backdropFilter: "blur(10px)",
                   }}
                 >
-                  {/* Animated background effect */}
-                  <motion.div
-                    className="absolute inset-0 -z-10 overflow-hidden"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    {/* Animated gradient background */}
-                    <motion.div
-                      className="absolute -inset-10"
-                      style={{
-                        background:
-                          "linear-gradient(125deg, rgba(10, 20, 40, 0.3), rgba(0, 10, 30, 0.1), rgba(20, 40, 80, 0.2))",
-                        filter: "blur(20px)",
-                      }}
-                      animate={{
-                        background: [
-                          "linear-gradient(125deg, rgba(10, 20, 40, 0.3), rgba(0, 10, 30, 0.1), rgba(20, 40, 80, 0.2))",
-                          "linear-gradient(225deg, rgba(20, 40, 80, 0.2), rgba(10, 20, 40, 0.3), rgba(0, 10, 30, 0.1))",
-                          "linear-gradient(325deg, rgba(0, 10, 30, 0.1), rgba(20, 40, 80, 0.2), rgba(10, 20, 40, 0.3))",
-                          "linear-gradient(125deg, rgba(10, 20, 40, 0.3), rgba(0, 10, 30, 0.1), rgba(20, 40, 80, 0.2))",
-                        ],
-                      }}
-                      transition={{ duration: 15, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                    />
-                    {/* Tiny animated background dots */}
-                    {[...Array(30)].map((_, i) => (
-                      <motion.div
-                        key={`tiny-dot-${i}`}
-                        className="absolute rounded-full bg-blue-300/10"
-                        style={{
-                          width: 1 + Math.random() * 2,
-                          height: 1 + Math.random() * 2,
-                          left: `${Math.random() * 100}%`,
-                          top: `${Math.random() * 100}%`,
-                        }}
-                        animate={{
-                          opacity: [0.1, 0.5, 0.1],
-                          scale: [1, 1.5, 1],
-                          x: [0, Math.random() * 10 - 5, 0],
-                          y: [0, Math.random() * 10 - 5, 0],
-                        }}
-                        transition={{
-                          duration: 3 + Math.random() * 4,
-                          repeat: Number.POSITIVE_INFINITY,
-                          ease: "easeInOut",
-                          delay: Math.random() * 2,
-                        }}
-                      />
-                    ))}
-                  </motion.div>
+
 
                   {/* Main title with enhanced animations */}
                   <div className="text-center relative z-10">
@@ -583,7 +622,7 @@ section:not(.section-active) {
                               <div className="text-center w-[160px] sm:w-[200px] md:w-[240px] lg:w-[280px] xl:w-[320px] overflow-visible">
                                 <RightToLeftTypeAnimation
                                   words={["Validate", "Publish", "Analyze"]}
-                                  className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-blue-400 to-indigo-600 animate-gradient-x whitespace-nowrap"
+                                  className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-blue-400 to-indigo-600 whitespace-nowrap"
                                 />
                               </div>
                               <div className="whitespace-nowrap tracking-normal px-1 letter-spacing-tight mt-2 sm:mt-0">
@@ -812,63 +851,8 @@ section:not(.section-active) {
           ref={verificationSectionRef}
           className="relative pt-0 pb-20 sm:pb-24 md:pb-32 overflow-visible transition-all duration-700"
         >
-          {/* Enhanced background with neural network visualization */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-gray-950/90 to-black/80">
-            {/* Dynamic neural network background */}
 
-            {/* Enhanced hexagonal grid pattern */}
-            <motion.div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.5 0l5 5-5 5-5-5 5-5zm-49 5l5 5-5 5-5-5 5-5zm44 44l5 5-5 5-5-5 5-5zm-49 5l5 5-5 5-5-5 5-5zM5 30l5 5-5 5-5-5 5-5zm44 0l5 5-5 5-5-5 5-5zm-20-25l5 5-5 5-5-5 5-5zm0 50l5 5-5 5-5-5 5-5z' fill='rgba(59, 130, 246, 0.15)' fillOpacity='0.4' fillRule='evenodd'/%3E%3C/svg%3E")`,
-                backgroundSize: `${60 + mousePosition.x * 20}px`,
-                opacity: 0.2,
-                transform: `perspective(1000px) rotateX(${mousePosition.y * 5}deg) rotateY(${mousePosition.x * 5}deg)`,
-                willChange: "transform, opacity",
-              }}
-              animate={{
-                backgroundPosition: ["0px 0px", "60px 60px"],
-              }}
-              transition={{
-                duration: 20,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: "linear",
-              }}
-            />
 
-            {/* Animated circuit lines */}
-
-            {/* Enhanced digital data particles - reduced count */}
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={`data-particle-verification-${i}`}
-                className="absolute rounded-full"
-                style={{
-                  width: 1 + Math.random() * 2,
-                  height: 1 + Math.random() * 2,
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  background: `rgba(${59 + Math.random() * 30}, ${130 + Math.random() * 40}, ${246}, ${0.6 + Math.random() * 0.4})`,
-                  boxShadow: `0 0 ${2 + Math.random() * 5}px rgba(59, 130, 246, 0.8)`,
-                  willChange: "transform, opacity",
-                }}
-                animate={{
-                  x: [0, (Math.random() - 0.5) * 100],
-                  y: [0, (Math.random() - 0.5) * 100],
-                  opacity: [0, 0.8, 0],
-                  scale: [0, 1.2, 0],
-                }}
-                transition={{
-                  duration: 3 + Math.random() * 3,
-                  repeat: Number.POSITIVE_INFINITY,
-                  delay: Math.random() * 2,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
-
-            {/* Digital code rain effect - reduced count */}
-          </div>
 
           <div className="container mx-auto px-4 relative z-10">
             {/* Section header with simplified animated glow */}
@@ -920,7 +904,7 @@ section:not(.section-active) {
                   </div>
                   <h3 className="text-lg font-bold text-white mb-2">Plagiarism Checker</h3>
                   <p className="text-blue-100/70 text-sm">
-                    AI agent detects plagiarism and suggests improvements if similarity {">"}15%.
+                    Human reviewers detect plagiarism and suggest improvements if similarity {">"}15%.
                   </p>
                 </div>
               </motion.div>
@@ -960,7 +944,7 @@ section:not(.section-active) {
                   </div>
                   <h3 className="text-lg font-bold text-white mb-2">Originality Verified</h3>
                   <p className="text-blue-100/70 text-sm">
-                    From plagiarism checks to citation audits, our AI ensures your work stands on trusted ground.
+                    From plagiarism checks to citation audits, our human reviewers ensure your work stands on trusted ground.
                   </p>
                 </div>
               </motion.div>
@@ -973,63 +957,7 @@ section:not(.section-active) {
           id="blockchain"
           className="relative py-20 sm:py-24 md:py-32 overflow-visible transition-all duration-1000"
         >
-          {/* Enhanced background with blockchain pattern */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-gray-950/90 to-black/80">
-            {/* Dynamic blockchain network background */}
 
-            {/* Enhanced hexagonal grid pattern */}
-            <motion.div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.5 0l5 5-5 5-5-5 5-5zm-49 5l5 5-5 5-5-5 5-5zm44 44l5 5-5 5-5-5 5-5zm-49 5l5 5-5 5-5-5 5-5zM5 30l5 5-5 5-5-5 5-5zm44 0l5 5-5 5-5-5 5-5zm-20-25l5 5-5 5-5-5 5-5zm0 50l5 5-5 5-5-5 5-5z' fill='rgba(59, 130, 246, 0.15)' fillOpacity='0.4' fillRule='evenodd'/%3E%3C/svg%3E")`,
-                backgroundSize: `${60 + mousePosition.x * 20}px`,
-                opacity: 0.2,
-                transform: `perspective(1000px) rotateX(${mousePosition.y * 5}deg) rotateY(${mousePosition.x * 5}deg)`,
-                willChange: "transform, opacity",
-              }}
-              animate={{
-                backgroundPosition: ["0px 0px", "60px 60px"],
-              }}
-              transition={{
-                duration: 20,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: "linear",
-              }}
-            />
-
-            {/* Animated circuit lines */}
-
-            {/* Enhanced digital data particles */}
-            {[...Array(40)].map((_, i) => (
-              <motion.div
-                key={`data-particle-blockchain-${i}`}
-                className="absolute rounded-full"
-                style={{
-                  width: 1 + Math.random() * 3,
-                  height: 1 + Math.random() * 3,
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  background: `rgba(${59 + Math.random() * 30}, ${130 + Math.random() * 40}, ${246}, ${0.6 + Math.random() * 0.4})`,
-                  boxShadow: `0 0 ${3 + Math.random() * 8}px rgba(59, 130, 246, 0.9)`,
-                  willChange: "transform, opacity",
-                }}
-                animate={{
-                  x: [0, (Math.random() - 0.5) * 150],
-                  y: [0, (Math.random() - 0.5) * 150],
-                  opacity: [0, 0.9, 0],
-                  scale: [0, 1.5, 0],
-                }}
-                transition={{
-                  duration: 3 + Math.random() * 4,
-                  repeat: Number.POSITIVE_INFINITY,
-                  delay: Math.random() * 2,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
-
-            {/* Digital code rain effect */}
-          </div>
 
           <div className="container mx-auto px-4 relative z-10">
             {/* Section header with simplified animated glow */}
@@ -1135,63 +1063,7 @@ section:not(.section-active) {
           ref={workflowSectionRef}
           className="relative py-20 sm:py-24 md:py-32 overflow-hidden transition-all duration-1000"
         >
-          {/* Enhanced workflow background */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-gray-950/90 to-black/80">
-            {/* Dynamic workflow visualization */}
 
-            {/* Enhanced hexagonal grid pattern */}
-            <motion.div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.5 0l5 5-5 5-5-5 5-5zm-49 5l5 5-5 5-5-5 5-5zm44 44l5 5-5 5-5-5 5-5zm-49 5l5 5-5 5-5-5 5-5zM5 30l5 5-5 5-5-5 5-5zm44 0l5 5-5 5-5-5 5-5zm-20-25l5 5-5 5-5-5 5-5zm0 50l5 5-5 5-5-5 5-5z' fill='rgba(59, 130, 246, 0.15)' fillOpacity='0.4' fillRule='evenodd'/%3E%3C/svg%3E")`,
-                backgroundSize: `${60 + mousePosition.x * 20}px`,
-                opacity: 0.2,
-                transform: `perspective(1000px) rotateX(${mousePosition.y * 5}deg) rotateY(${mousePosition.x * 5}deg)`,
-                willChange: "transform, opacity",
-              }}
-              animate={{
-                backgroundPosition: ["0px 0px", "60px 60px"],
-              }}
-              transition={{
-                duration: 20,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: "linear",
-              }}
-            />
-
-            {/* Animated circuit lines */}
-
-            {/* Enhanced digital data particles */}
-            {[...Array(40)].map((_, i) => (
-              <motion.div
-                key={`data-particle-workflow-${i}`}
-                className="absolute rounded-full"
-                style={{
-                  width: 1 + Math.random() * 3,
-                  height: 1 + Math.random() * 3,
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  background: `rgba(${59 + Math.random() * 30}, ${130 + Math.random() * 40}, ${246}, ${0.6 + Math.random() * 0.4})`,
-                  boxShadow: `0 0 ${3 + Math.random() * 8}px rgba(59, 130, 246, 0.9)`,
-                  willChange: "transform, opacity",
-                }}
-                animate={{
-                  x: [0, (Math.random() - 0.5) * 150],
-                  y: [0, (Math.random() - 0.5) * 150],
-                  opacity: [0, 0.9, 0],
-                  scale: [0, 1.5, 0],
-                }}
-                transition={{
-                  duration: 3 + Math.random() * 4,
-                  repeat: Number.POSITIVE_INFINITY,
-                  delay: Math.random() * 2,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
-
-            {/* Digital code rain effect */}
-          </div>
 
           <div className="container mx-auto px-4 relative z-10">
             {/* Section header with simplified animated glow */}
@@ -1329,23 +1201,7 @@ section:not(.section-active) {
                               borderColor: "rgba(59, 130, 246, 0.4)",
                             }}
                           >
-                            {/* Animated background effect */}
-                            <motion.div
-                              className="absolute inset-0 opacity-20"
-                              animate={{
-                                background: [
-                                  "radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 70%)",
-                                  "radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 70%)",
-                                ],
-                              }}
-                              transition={{
-                                duration: 5,
-                                repeat: Number.POSITIVE_INFINITY,
-                                repeatType: "reverse",
-                                ease: "easeInOut",
-                              }}
-                              style={{ willChange: "transform, opacity" }}
-                            />
+
 
                             <div className="relative z-10">
                               <h3 className="text-2xl font-bold text-white mb-3 flex items-center">
@@ -1383,69 +1239,240 @@ section:not(.section-active) {
           </div>
         </section>
 
+        {/* Community Section */}
+        <section
+          id="community"
+          ref={communitySectionRef}
+          className="relative py-20 sm:py-24 md:py-32 overflow-hidden transition-all duration-1000"
+        >
+          <div className="container mx-auto px-4 relative z-10">
+            {/* Section header */}
+            <div className="text-center relative z-10 mb-16">
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                className="mb-6"
+              >
+                <motion.h2
+                  className="text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-300 via-blue-400 to-blue-500 mb-2"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.7, delay: 0.2 }}
+                  style={{
+                    textShadow: "0 0 15px rgba(59, 130, 246, 0.5)",
+                    willChange: "transform, opacity",
+                  }}
+                >
+                  Community
+                </motion.h2>
+
+                <motion.p
+                  className="text-lg text-blue-100/80 max-w-2xl mx-auto"
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  style={{ willChange: "transform, opacity" }}
+                >
+                  Where Research Meets Trust and Grows Together
+                </motion.p>
+              </motion.div>
+            </div>
+
+            {/* Community content */}
+            <div className="max-w-5xl mx-auto">
+              <motion.div
+                className="relative"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, delay: 0.2 }}
+                style={{ willChange: "transform, opacity" }}
+              >
+                {/* Main description card */}
+                <div className="relative rounded-xl border border-blue-500/20 bg-black/40 backdrop-blur-md p-8 mb-8 overflow-hidden">
+                  <motion.p
+                    className="text-lg text-blue-100/90 text-center leading-relaxed max-w-3xl mx-auto"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                  >
+                    Mintellect is more than a platform - it's a supportive peer review community where researchers, innovators, and reviewers collaborate to build trusted knowledge. Our peer review system rewards contributors with OCI badges and incentives, ensuring recognition for their efforts.
+                  </motion.p>
+                </div>
+
+                {/* Action cards grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  {/* Telegram Card */}
+                  <motion.div
+                    className="relative group"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                  >
+                    <Link 
+                      href="https://t.me/mintellect_community" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <div className="relative rounded-xl border border-blue-500/20 bg-black/30 backdrop-blur-md p-6 h-full transition-all duration-300 group-hover:border-blue-500/40 group-hover:bg-black/50 group-hover:scale-105">
+                        <div className="text-center">
+                          <div className="w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-500/20 transition-colors duration-300">
+                            <Send className="h-8 w-8 text-blue-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-white mb-2">Join Telegram</h3>
+                          <p className="text-blue-100/70 text-sm">
+                            Connect with researchers, reviewers, and innovators in our community
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+
+                  {/* X/Twitter Card */}
+                  <motion.div
+                    className="relative group"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                  >
+                    <Link 
+                      href="https://x.com/_Mintellect_" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <div className="relative rounded-xl border border-blue-500/20 bg-black/30 backdrop-blur-md p-6 h-full transition-all duration-300 group-hover:border-blue-500/40 group-hover:bg-black/50 group-hover:scale-105">
+                        <div className="text-center">
+                          <div className="w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-500/20 transition-colors duration-300">
+                            <XIcon className="h-8 w-8 text-blue-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-white mb-2">Follow on X</h3>
+                          <p className="text-blue-100/70 text-sm">
+                            Stay updated with the latest insights and announcements
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+
+                               {/* Reviewer Application Card */}
+             <motion.div
+               className="relative group"
+               initial={{ opacity: 0, y: 20 }}
+               whileInView={{ opacity: 1, y: 0 }}
+               viewport={{ once: true }}
+               transition={{ duration: 0.5, delay: 0.6 }}
+             >
+               <Link
+                 href="https://18olnrtzvht.typeform.com/to/HCsFJfMH"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 className="block"
+               >
+                      <div className="relative rounded-xl border border-blue-500/20 bg-black/30 backdrop-blur-md p-6 h-full transition-all duration-300 group-hover:border-blue-500/40 group-hover:bg-black/50 group-hover:scale-105">
+                        <div className="text-center">
+                          <div className="w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-500/20 transition-colors duration-300">
+                            <Users className="h-8 w-8 text-blue-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-white mb-2">Become a Reviewer</h3>
+                          <p className="text-blue-100/70 text-sm">
+                            Apply to shape the future of trusted research verification
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                </div>
+
+                {/* Bottom message */}
+                <motion.div
+                  className="text-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.7 }}
+                >
+                  <div className="relative rounded-xl border border-blue-500/20 bg-black/40 backdrop-blur-md p-6">
+                    <p className="text-lg text-blue-200/80 font-medium">
+                      Together, we're creating a decentralized ecosystem where trust fuels growth.
+                    </p>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Testimonials Section */}
+        <section
+          id="testimonials"
+          ref={testimonialsSectionRef}
+          className="relative py-20 sm:py-24 md:py-32 overflow-hidden transition-all duration-1000"
+        >
+          <div className="container mx-auto px-4 relative z-10">
+            {/* Section header */}
+            <div className="text-center relative z-10 mb-16">
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                className="mb-6"
+              >
+                <motion.h2
+                  className="text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-300 via-blue-400 to-blue-500 mb-2"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.7, delay: 0.2 }}
+                  style={{
+                    textShadow: "0 0 15px rgba(59, 130, 246, 0.5)",
+                    willChange: "transform, opacity",
+                  }}
+                >
+                  What Researchers Say
+                </motion.h2>
+
+                <motion.p
+                  className="text-lg text-blue-100/80 max-w-2xl mx-auto"
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  style={{ willChange: "transform, opacity" }}
+                >
+                  Hear from leading researchers and institutions who trust Mintellect for their verification needs
+                </motion.p>
+              </motion.div>
+            </div>
+
+            {/* Testimonials content */}
+            <motion.div
+              className="relative"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+            >
+              <MintellectTestimonials />
+            </motion.div>
+          </div>
+        </section>
+
         {/* Call to Action Section */}
         <section
           id="cta"
           ref={ctaSectionRef}
           className="relative py-20 sm:py-24 md:py-32 overflow-hidden transition-all duration-1000"
         >
-          {/* Enhanced CTA background */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-gray-950/90 to-black/80">
-            {/* Dynamic CTA visualization */}
 
-            {/* Enhanced hexagonal grid pattern */}
-            <motion.div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.5 0l5 5-5 5-5-5 5-5zm-49 5l5 5-5 5-5-5 5-5zm44 44l5 5-5 5-5-5 5-5zm-49 5l5 5-5 5-5-5 5-5zM5 30l5 5-5 5-5-5 5-5zm44 0l5 5-5 5-5-5 5-5zm-20-25l5 5-5 5-5-5 5-5zm0 50l5 5-5 5-5-5 5-5z' fill='rgba(59, 130, 246, 0.15)' fillOpacity='0.4' fillRule='evenodd'/%3E%3C/svg%3E")`,
-                backgroundSize: `${60 + mousePosition.x * 20}px`,
-                opacity: 0.2,
-                transform: `perspective(1000px) rotateX(${mousePosition.y * 5}deg) rotateY(${mousePosition.x * 5}deg)`,
-                willChange: "transform, opacity",
-              }}
-              animate={{
-                backgroundPosition: ["0px 0px", "60px 60px"],
-              }}
-              transition={{
-                duration: 20,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: "linear",
-              }}
-            />
 
-            {/* Animated circuit lines */}
-
-            {/* Enhanced digital data particles */}
-            {[...Array(40)].map((_, i) => (
-              <motion.div
-                key={`data-particle-cta-${i}`}
-                className="absolute rounded-full"
-                style={{
-                  width: 1 + Math.random() * 3,
-                  height: 1 + Math.random() * 3,
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  background: `rgba(${59 + Math.random() * 30}, ${130 + Math.random() * 40}, ${246}, ${0.6 + Math.random() * 0.4})`,
-                  boxShadow: `0 0 ${3 + Math.random() * 8}px rgba(59, 130, 246, 0.9)`,
-                  willChange: "transform, opacity",
-                }}
-                animate={{
-                  x: [0, (Math.random() - 0.5) * 150],
-                  y: [0, (Math.random() - 0.5) * 150],
-                  opacity: [0, 0.9, 0],
-                  scale: [0, 1.5, 0],
-                }}
-                transition={{
-                  duration: 3 + Math.random() * 4,
-                  repeat: Number.POSITIVE_INFINITY,
-                  delay: Math.random() * 2,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
-
-            {/* Digital code rain effect */}
-          </div>
 
           <div className="container mx-auto px-4 relative z-10">
             {/* Section header with enhanced animated glow */}
@@ -1508,23 +1535,7 @@ section:not(.section-active) {
                 style={{ willChange: "transform, opacity" }}
               >
                 <div className="relative rounded-xl border border-blue-500/20 bg-black/40 backdrop-blur-md p-8 overflow-hidden h-full">
-                  {/* Animated background effect */}
-                  <motion.div
-                    className="absolute inset-0 opacity-30"
-                    animate={{
-                      background: [
-                        "radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 70%)",
-                        "radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 70%)",
-                      ],
-                    }}
-                    transition={{
-                      duration: 5,
-                      repeat: Number.POSITIVE_INFINITY,
-                      repeatType: "reverse",
-                      ease: "easeInOut",
-                    }}
-                    style={{ willChange: "transform, opacity" }}
-                  />
+
 
                   {/* CTA pattern overlay */}
                   <div className="absolute inset-0 opacity-10">
@@ -1598,51 +1609,14 @@ section:not(.section-active) {
                             style={{ willChange: "transform, opacity" }}
                           />
 
-                          {/* Orbital particles */}
-                          {[...Array(3)].map((_, i) => {
-                            const angle = (i / 3) * Math.PI * 2
-                            return (
-                              <motion.div
-                                key={`cta-button-particle-${i}`}
-                                className="absolute w-1 h-1 rounded-full bg-blue-400"
-                                animate={{
-                                  x: [
-                                    `calc(${Math.cos(angle)} * 20px)`,
-                                    `calc(${Math.cos(angle + Math.PI * 2)} * 20px)`,
-                                  ],
-                                  y: [
-                                    `calc(${Math.sin(angle)} * 20px)`,
-                                    `calc(${Math.sin(angle + Math.PI * 2)} * 20px)`,
-                                  ],
-                                  opacity: [0, 1, 0],
-                                }}
-                                transition={{
-                                  duration: 3,
-                                  repeat: Number.POSITIVE_INFINITY,
-                                  delay: i * 1,
-                                  ease: "linear",
-                                }}
-                                style={{
-                                  left: "50%",
-                                  top: "50%",
-                                  transform: "translate(-50%, -50%)",
-                                  willChange: "transform, opacity",
-                                }}
-                              />
-                            )
-                          })}
+
 
                           {/* Button text */}
                           <span className="relative flex items-center justify-center text-base font-medium text-white h-full">
                             Get Started
-                            <motion.div
-                              animate={{ x: [0, 5, 0] }}
-                              transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
-                              className="ml-2"
-                              style={{ willChange: "transform, opacity" }}
-                            >
+                            <div className="ml-2">
                               <ArrowRight className="h-5 w-5" />
-                            </motion.div>
+                            </div>
                           </span>
                         </motion.button>
                       </Link>

@@ -110,6 +110,20 @@ const config: Config = {
             transform: "translateX(200%) rotate(45deg)",
           },
         },
+        "cell-ripple": {
+          "0%": {
+            opacity: "0.4",
+            transform: "scale(1)",
+          },
+          "50%": {
+            opacity: "1",
+            transform: "scale(1.05)",
+          },
+          "100%": {
+            opacity: "0.4",
+            transform: "scale(1)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -119,6 +133,7 @@ const config: Config = {
         "gradient-background": "gradient-background 15s ease infinite",
         "border-flow": "border-flow 4s ease infinite",
         shine: "shine 2s linear infinite",
+        "cell-ripple": "cell-ripple var(--duration, 1s) ease-out var(--delay, 0s)",
       },
     },
   },
