@@ -105,3 +105,4 @@ node test-contract-integration.js
 
 **🎉 Congratulations! Your optimized MintellectNFT contract is now live on EduChain Testnet with 98% gas reduction!**
 
+
