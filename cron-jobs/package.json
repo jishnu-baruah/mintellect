@@ -1,0 +1,23 @@
+{
+  "name": "mintellect-cron-jobs",
+  "version": "1.0.0",
+  "description": "Cron jobs to keep Mintellect API servers active",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "node test-apis.js"
+  },
+  "dependencies": {
+    "node-cron": "^3.0.3",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["cron", "api", "health-check", "mintellect"],
+  "author": "Mintellect Team",
+  "license": "MIT"
+}

@@ -1,286 +1,152 @@
-# Mintellect - Complete Project Documentation
+# Mintellect Documentation
 
-## 🧠 Project Overview
+Welcome to the comprehensive documentation for **Mintellect**, the revolutionary academic integrity platform that combines document verification, trust scoring, NFT certification, and community features to ensure academic excellence.
 
-**Mintellect** is a revolutionary AI + Blockchain-powered research publishing platform that combines artificial intelligence, blockchain technology, and decentralized peer review to create a new paradigm for academic research publication and verification.
+## 🚀 What is Mintellect?
 
-### 🎯 Mission
-To democratize research publishing by providing researchers with immutable ownership of their work through NFTs, AI-powered trust scoring, and decentralized peer review - all secured on the blockchain.
+Mintellect is a cutting-edge platform that leverages blockchain technology, AI-powered plagiarism detection, and community-driven verification to create a trusted ecosystem for academic documents and research papers.
 
-### 🚀 Core Value Proposition
-- **Immutable Research Ownership**: Mint research papers as NFTs with permanent blockchain records
-- **AI-Powered Trust Scoring**: Automated analysis for plagiarism detection and quality assessment
-- **Decentralized Peer Review**: Community-driven verification system
-- **Transparent Credibility**: Public trust scores and verification history
+### Key Features
 
----
+- **📄 Document Verification**: AI-powered analysis and verification of academic documents
+- **🎯 Trust Score Generation**: Comprehensive scoring system for document authenticity
+- **🪙 NFT Certification**: Blockchain-based certification of verified documents
+- **👥 Community Features**: Collaborative verification and peer review system
+- **📊 Analytics & Reporting**: Detailed insights and performance metrics
+- **🔒 Security & Privacy**: Enterprise-grade security with privacy protection
 
-## 🏗️ System Architecture
+## 🎯 Who is this documentation for?
 
-### High-Level Architecture
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend       │    │   Blockchain    │
-│   (Next.js)     │◄──►│   (Express.js)  │◄──►│   (Educhain)    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   UI Components │    │   API Services  │    │   Smart         │
-│   (shadcn/ui)   │    │   (MongoDB)     │    │   Contracts     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Wallet        │    │   AI Services   │    │   NFT Minting   │
-│   Integration   │    │   (Plagiarism)  │    │   (ERC-721)     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+This documentation serves multiple audiences:
 
-### Technology Stack
+### 👨‍💻 Developers
+- Complete API reference and integration guides
+- Development setup and coding standards
+- Testing and debugging procedures
+- Deployment and monitoring guides
 
-#### Frontend Stack
-- **Framework**: Next.js 15.4.5 (React 19)
-- **Styling**: TailwindCSS 3.4.17
-- **UI Components**: shadcn/ui (Radix UI primitives)
-- **State Management**: React hooks + SWR for data fetching
-- **Web3 Integration**: RainbowKit + Wagmi + Viem
-- **Blockchain**: Ethers.js 6.7.1
-- **Forms**: React Hook Form + Zod validation
-- **Animations**: Framer Motion
-- **Charts**: Recharts
-- **Notifications**: Sonner
+### 👤 End Users
+- Step-by-step workflows and tutorials
+- Feature explanations and best practices
+- Troubleshooting guides and FAQ
+- Community guidelines and support
 
-#### Backend Stack
-- **Runtime**: Node.js with ES modules
-- **Framework**: Express.js 4.18.2
-- **Database**: MongoDB with Mongoose ODM
-- **File Processing**: Multer + PDF.js-extract
-- **AI/ML**: @xenova/transformers (Hugging Face)
-- **Cloud Storage**: Cloudinary
-- **Web Scraping**: Puppeteer
-- **Logging**: Winston
-- **Security**: Helmet + CORS
+### 🏢 Organizations & Institutions
+- Architecture and security overview
+- Integration and deployment options
+- Compliance and governance information
+- Performance and scalability details
 
-#### Blockchain Stack
-- **Network**: Educhain Testnet (Chain ID: 656476)
-- **Smart Contracts**: Solidity 0.8.0+
-- **Development**: Hardhat
-- **Contract Standard**: ERC-721 (NFT)
-- **Wallet Integration**: MetaMask, WalletConnect, RainbowKit
+## 📚 Documentation Structure
 
-#### AI/ML Services
-- **Plagiarism Detection**: Custom Python service (FastAPI)
-- **Document Analysis**: Transformers.js for text processing
-- **Trust Scoring**: Multi-factor analysis algorithm
-- **PDF Processing**: PDF.js-extract + custom parsers
+### Getting Started
+- **Introduction**: Overview and key concepts
+- **Quick Start**: Get up and running in minutes
+- **Installation**: Complete setup instructions
+- **Architecture Overview**: High-level system design
 
----
+### Technical Documentation
+- **Frontend**: React/Next.js components and pages
+- **Backend**: API reference and server architecture
+- **Services**: Plagiarism detection and smart contracts
+- **Features**: Detailed feature documentation
 
-## 📁 Project Structure
+### Development & Deployment
+- **Development**: Setup, standards, and testing
+- **Deployment**: Production deployment and monitoring
+- **Troubleshooting**: Common issues and solutions
+- **Support**: Community and contact information
 
-```
-mintellect/
-├── client/                     # Next.js Frontend Application
-│   ├── app/                   # App Router (Next.js 13+)
-│   │   ├── dashboard/         # Main dashboard pages
-│   │   ├── workflow/          # Document verification workflow
-│   │   ├── documents/         # Document management
-│   │   ├── analytics/         # Analytics and reporting
-│   │   ├── nft-gallery/       # NFT certificate gallery
-│   │   ├── community/         # Community features
-│   │   ├── settings/          # User settings and profile
-│   │   └── api/               # API routes (Next.js)
-│   ├── components/            # React components
-│   │   ├── ui/               # shadcn/ui components
-│   │   └── [custom]/         # Custom components
-│   ├── hooks/                # Custom React hooks
-│   ├── lib/                  # Utility functions
-│   ├── contracts/            # Smart contracts
-│   └── types/                # TypeScript type definitions
-├── server/                   # Express.js Backend
-│   ├── src/
-│   │   ├── routes/           # API route handlers
-│   │   ├── models/           # MongoDB models
-│   │   ├── middleware/       # Express middleware
-│   │   ├── services/         # Business logic services
-│   │   └── utils/            # Utility functions
-│   └── public/               # Static assets
-├── landing/                  # Marketing/Landing Page
-│   ├── app/                 # Landing page routes
-│   ├── components/          # Landing page components
-│   └── client/              # Client-specific landing
-├── plagiarismSearch/         # Python AI Service
-│   ├── main.py              # FastAPI application
-│   ├── server.py            # Plagiarism detection service
-│   └── templates/           # HTML templates
-└── docs/                    # Project Documentation
-```
+## 🛠 Technology Stack
 
----
+### Frontend
+- **Next.js 14**: React framework with App Router
+- **TypeScript**: Type-safe development
+- **TailwindCSS**: Utility-first styling
+- **shadcn/ui**: Modern component library
+- **RainbowKit**: Web3 wallet integration
 
-## 🔧 Key Features & Functionality
+### Backend
+- **Node.js**: Server runtime
+- **Express.js**: Web framework
+- **MongoDB**: NoSQL database
+- **JWT**: Authentication
+- **Cloudinary**: File storage
 
-### 1. User Authentication & Profile Management
-- **Wallet-based Authentication**: Connect with MetaMask, WalletConnect, etc.
-- **Profile Completion System**: Multi-step profile setup with requirements
-- **Settings Management**: Security, privacy, billing, notifications
+### Blockchain
+- **Solidity**: Smart contract development
+- **Hardhat**: Development framework
+- **Etherscan**: Contract verification
+- **Educhain**: Educational blockchain
 
-### 2. Document Management & Verification
-- **File Upload System**: Support for PDF, DOCX, and other formats
-- **Document Processing**: AI-powered text extraction and analysis
-- **Plagiarism Detection**: Multi-source plagiarism checking
-- **Trust Score Generation**: Automated quality assessment
+### AI & Services
+- **PlagiarismSearch API**: Content analysis
+- **Gemini AI**: Advanced text processing
+- **OpenAI API**: AI-powered features
 
-### 3. NFT Minting & Blockchain Integration
-- **Research NFT Minting**: Convert verified papers to NFTs
-- **Metadata Storage**: IPFS/Arweave integration for metadata
-- **Certificate Generation**: Automated certificate creation
-- **Gallery Management**: NFT display and management
+## 🚀 Quick Navigation
 
-### 4. Community & Peer Review
-- **Research Community**: User profiles and interactions
-- **Peer Review System**: Decentralized review process
-- **Paper Publishing**: Community-driven publication
-- **Analytics Dashboard**: Research insights and metrics
+| Section | Description | Target Audience |
+|---------|-------------|-----------------|
+| [Getting Started](getting-started/introduction.md) | Platform overview and setup | All users |
+| [Architecture](architecture/system-design.md) | System design and architecture | Developers, Architects |
+| [Frontend](frontend/overview.md) | Frontend development guide | Frontend Developers |
+| [Backend](backend/overview.md) | Backend API and services | Backend Developers |
+| [Features](features/overview.md) | Feature documentation | Users, Product Managers |
+| [Workflows](workflows/user-onboarding.md) | User workflows and processes | End Users |
+| [Development](development/setup.md) | Development setup and standards | Developers |
+| [Deployment](deployment/production.md) | Production deployment | DevOps, System Administrators |
+| [Troubleshooting](troubleshooting/common-issues.md) | Common issues and solutions | All users |
 
-### 5. AI-Powered Features
-- **Trust Score Algorithm**: Multi-factor analysis
-- **Plagiarism Detection**: Advanced text similarity analysis
-- **Content Analysis**: Quality and relevance scoring
-- **Recommendation Engine**: AI-powered research suggestions
+## 🔗 Quick Links
+
+- **GitHub Repository**: [mintellect-platform](https://github.com/your-org/mintellect)
+- **Live Demo**: [demo.mintellect.com](https://demo.mintellect.com)
+- **API Documentation**: [api.mintellect.com](https://api.mintellect.com)
+- **Community Forum**: [community.mintellect.com](https://community.mintellect.com)
+
+## 📖 How to Use This Documentation
+
+### For New Users
+1. Start with [Getting Started](getting-started/introduction.md)
+2. Follow the [Quick Start](getting-started/quick-start.md) guide
+3. Explore [Features](features/overview.md) to understand capabilities
+4. Check [Workflows](workflows/user-onboarding.md) for step-by-step processes
+
+### For Developers
+1. Review [Architecture](architecture/system-design.md) for system understanding
+2. Set up development environment with [Development Guide](development/setup.md)
+3. Explore [API Reference](backend/api-reference.md) for integration
+4. Check [Deployment](deployment/production.md) for production setup
+
+### For Organizations
+1. Review [Architecture](architecture/system-design.md) for technical overview
+2. Check [Security](architecture/security.md) for compliance information
+3. Explore [Deployment](deployment/production.md) for infrastructure requirements
+4. Review [Features](features/overview.md) for business capabilities
+
+## 🤝 Contributing
+
+We welcome contributions to improve this documentation! Please see our [Contributing Guide](support/contributing.md) for details on how to:
+
+- Report documentation issues
+- Suggest improvements
+- Submit pull requests
+- Join our community
+
+## 📞 Support
+
+Need help? We're here to assist:
+
+- **Documentation Issues**: [GitHub Issues](https://github.com/your-org/mintellect/issues)
+- **Community Support**: [Community Forum](https://community.mintellect.com)
+- **Technical Support**: [support@mintellect.com](mailto:support@mintellect.com)
+- **Enterprise Support**: [enterprise@mintellect.com](mailto:enterprise@mintellect.com)
+
+## 📄 License
+
+This documentation is licensed under the [MIT License](https://opensource.org/licenses/MIT).
 
 ---
 
-## 🌐 API Architecture
-
-### RESTful API Endpoints
-- **Authentication**: `/api/auth/*`
-- **Profile Management**: `/settings/profile/*`
-- **File Management**: `/api/files/*`
-- **Trust Score**: `/api/trust-score/*`
-- **Workflow**: `/api/workflow/*`
-- **PDF Generation**: `/api/pdf/*`
-
-### Web3 Integration
-- **Wallet Connection**: RainbowKit integration
-- **Smart Contract Interaction**: Ethers.js + Hardhat
-- **NFT Operations**: Mint, transfer, metadata management
-
----
-
-## 🔐 Security & Privacy
-
-### Security Measures
-- **CORS Protection**: Cross-origin request handling
-- **Input Validation**: Zod schema validation
-- **File Upload Security**: Multer with file type restrictions
-- **Authentication**: Wallet-based identity verification
-- **Rate Limiting**: API request throttling
-
-### Privacy Features
-- **Data Encryption**: Sensitive data encryption
-- **User Consent**: GDPR-compliant data handling
-- **Anonymization**: Optional anonymous research publishing
-- **Access Control**: Role-based permissions
-
----
-
-## 🚀 Deployment & Infrastructure
-
-### Development Environment
-- **Local Development**: Docker containers for all services
-- **Hot Reloading**: Next.js and Express.js development servers
-- **Database**: Local MongoDB instance
-- **Blockchain**: Hardhat local network
-
-### Production Environment
-- **Frontend**: Vercel deployment
-- **Backend**: Node.js hosting (Railway/Heroku)
-- **Database**: MongoDB Atlas
-- **Blockchain**: Educhain Testnet
-- **File Storage**: Cloudinary
-- **AI Services**: Python hosting (Railway/Render)
-
----
-
-## 📊 Performance & Scalability
-
-### Performance Optimizations
-- **Next.js Optimization**: Image optimization, code splitting
-- **Database Indexing**: MongoDB query optimization
-- **Caching**: SWR for data caching
-- **CDN**: Static asset delivery
-- **Lazy Loading**: Component and route lazy loading
-
-### Scalability Considerations
-- **Microservices Architecture**: Separate services for different functions
-- **Database Sharding**: MongoDB horizontal scaling
-- **Load Balancing**: API request distribution
-- **Caching Strategy**: Redis for session and data caching
-
----
-
-## 🔄 Development Workflow
-
-### Code Standards
-- **TypeScript**: Strict type checking
-- **ESLint**: Code quality enforcement
-- **Prettier**: Code formatting
-- **Git Hooks**: Pre-commit validation
-
-### Testing Strategy
-- **Unit Tests**: Jest for component testing
-- **Integration Tests**: API endpoint testing
-- **E2E Tests**: Playwright for user flows
-- **Smart Contract Tests**: Hardhat testing
-
----
-
-## 📈 Future Roadmap
-
-### Phase 1 (Q1 2025) - Core Platform
-- [x] User registration and authentication
-- [x] Document upload and processing
-- [x] Basic trust score generation
-- [x] NFT minting functionality
-
-### Phase 2 (Q2 2025) - AI Enhancement
-- [ ] Advanced plagiarism detection
-- [ ] AI-powered content analysis
-- [ ] Recommendation engine
-- [ ] Peer review system
-
-### Phase 3 (Q3 2025) - Community Features
-- [ ] Research community platform
-- [ ] Decentralized governance
-- [ ] Reputation system
-- [ ] Advanced analytics
-
-### Phase 4 (Q4 2025) - Enterprise Features
-- [ ] Institutional partnerships
-- [ ] Advanced security features
-- [ ] API marketplace
-- [ ] Mobile applications
-
----
-
-## 📞 Support & Community
-
-### Contact Information
-- **Email**: mintellectproject@gmail.com
-- **Twitter**: [@_Mintellect_](https://x.com/_Mintellect_)
-- **Telegram**: [@mintellect_community](https://t.me/mintellect_community)
-
-### Documentation Links
-- [Architecture Overview](./ARCHITECTURE.md)
-- [API Documentation](./API.md)
-- [Development Guide](./DEVELOPMENT.md)
-- [Deployment Guide](./DEPLOYMENT.md)
-- [Troubleshooting](./TROUBLESHOOTING.md)
-
----
-
-*This documentation is continuously updated. For the latest information, check the [TODO.md](./TODO.md) for current development status.* 
+**Ready to get started?** Begin your journey with [Getting Started](getting-started/introduction.md) or jump directly to [Quick Start](getting-started/quick-start.md) for immediate setup instructions. 

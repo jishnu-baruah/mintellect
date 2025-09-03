@@ -1,0 +1,67 @@
+{
+  "title": "Mintellect Documentation",
+  "description": "Complete documentation for the Mintellect academic integrity platform - Document verification, trust scores, NFT certification, and community features",
+  "author": "Mintellect Team",
+  "language": "en",
+  "structure": {
+    "readme": "README.md",
+    "summary": "SUMMARY.md"
+  },
+  "plugins": [
+    "search",
+    "code",
+    "copy-code-button",
+    "theme-default",
+    "highlight",
+    "sharing",
+    "fontsettings",
+    "livereload",
+    "expandable-chapters",
+    "back-to-top-button",
+    "github",
+    "prism",
+    "splitter",
+    "toc",
+    "anchorjs"
+  ],
+  "pluginsConfig": {
+    "search": {
+      "maxIndexSize": 100000,
+      "ignoreCase": true,
+      "maxSearchResults": 20
+    },
+    "highlight": {
+      "theme": "github"
+    },
+    "sharing": {
+      "facebook": true,
+      "twitter": true,
+      "google": false,
+      "weibo": false,
+      "instapaper": false,
+      "vk": false,
+      "all": ["facebook", "google", "twitter", "weibo", "instapaper"]
+    },
+    "github": {
+      "url": "https://github.com/your-org/mintellect"
+    },
+    "prism": {
+      "css": [
+        "prismjs/themes/prism.css"
+      ]
+    },
+    "toc": {
+      "addClass": true,
+      "className": "toc"
+    },
+    "anchorjs": {
+      "placement": "left",
+      "visible": "hover"
+    }
+  },
+  "variables": {
+    "projectName": "Mintellect",
+    "version": "1.0.0",
+    "githubUrl": "https://github.com/your-org/mintellect"
+  }
+} 
