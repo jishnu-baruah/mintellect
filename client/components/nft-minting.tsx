@@ -4,11 +4,13 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { GlassCard } from "./ui/glass-card"
 import { RippleButton } from "./ui/ripple-button"
-import { FileText, Check, Clock, Share2, Download, ExternalLink, Copy, Shield } from "lucide-react"
+import { FileText, Check, Clock, Share2, Download, ExternalLink, Copy, Shield, AlertTriangle, Zap } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { uploadMetadata } from "../lib/utils";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useWalletClient } from 'wagmi';
+import { ethers } from 'ethers';
 import contractABI from "../lib/MintellectNFT_ABI.json";
+import { GasEstimator, GasEstimate } from "../lib/gas-estimation";
 
 interface NFTMintingProps {
   documentId: string
@@ -17,7 +19,7 @@ interface NFTMintingProps {
   onComplete?: () => void
 }
 
-type MintingStatus = "preparing" | "minting" | "confirming" | "complete" | "failed"
+type MintingStatus = "preparing" | "estimating" | "confirming-gas" | "minting" | "confirming" | "complete" | "failed"
 
 export function NFTMinting({ documentId, documentName, trustScore, onComplete }: NFTMintingProps) {
   const router = useRouter()
@@ -32,9 +34,13 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const CONTRACT_ADDRESS = "0xadB0b68EE8c15b9F9E99ECf9A36a5BF17AC06864"; // Educhain contract
   const [ipfsUrl, setIpfsUrl] = useState<string | null>(null);
   const [mintArgs, setMintArgs] = useState<[string, string] | null>(null);
+  const [gasEstimate, setGasEstimate] = useState<GasEstimate | null>(null);
+  const [showGasConfirmation, setShowGasConfirmation] = useState(false);
+  const [walletType, setWalletType] = useState<string>('unknown');
 
   // Contract write (updated for new wagmi version)
   const { writeContract, data: txData, isPending: isWriting, error: writeError } = useWriteContract();
@@ -75,9 +81,108 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
     }
   }, [writeError]);
 
+  // Detect wallet type
+  useEffect(() => {
+    if (walletClient) {
+      const connector = walletClient.connector;
+      if (connector) {
+        setWalletType(connector.name.toLowerCase());
+      }
+    }
+  }, [walletClient]);
+
+  // Estimate gas fees
+  const estimateGasFees = async (ipfsUrl: string) => {
+    if (!address || !walletClient) throw new Error("Wallet not connected");
+    
+    setStatus("estimating");
+    setProgress(20);
+    
+    try {
+      const provider = new ethers.BrowserProvider(walletClient);
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider);
+      
+      // Get optimized gas settings for the wallet type
+      const gasOptions = GasEstimator.getOptimizedGasSettings(walletType);
+      
+      // Estimate gas
+      const estimate = await GasEstimator.estimateMintGas(
+        contract,
+        address,
+        ipfsUrl,
+        gasOptions
+      );
+      
+      setGasEstimate(estimate);
+      setProgress(40);
+      
+      // Check if gas price is reasonable
+      const isReasonable = GasEstimator.isReasonableGasPrice(estimate.gasPrice);
+      
+      if (!isReasonable || estimate.isHighFee) {
+        setShowGasConfirmation(true);
+        setStatus("confirming-gas");
+      } else {
+        proceedWithMinting(ipfsUrl, estimate);
+      }
+    } catch (err: any) {
+      console.error("Gas estimation error:", err);
+      // Use fallback estimate
+      const fallbackEstimate = GasEstimator.getFallbackGasEstimate();
+      setGasEstimate(fallbackEstimate);
+      setShowGasConfirmation(true);
+      setStatus("confirming-gas");
+    }
+  };
+
+  // Proceed with minting after gas confirmation
+  const proceedWithMinting = async (ipfsUrl: string, estimate?: GasEstimate) => {
+    if (!address) throw new Error("Wallet not connected");
+    
+    setStatus("minting");
+    setProgress(60);
+    
+    try {
+      console.log("Minting NFT with args:", [address, ipfsUrl]);
+      console.log("Contract address:", CONTRACT_ADDRESS);
+      
+      // Prepare transaction parameters
+      const txParams: any = {
+        address: CONTRACT_ADDRESS,
+        abi: contractABI,
+        functionName: 'mintNFT',
+        args: [address, ipfsUrl],
+      };
+      
+      // Add gas parameters if estimate is available
+      if (estimate) {
+        txParams.gas = estimate.gasLimit;
+        
+        if (estimate.maxFeePerGas && estimate.maxPriorityFeePerGas) {
+          // EIP-1559 transaction
+          txParams.maxFeePerGas = estimate.maxFeePerGas;
+          txParams.maxPriorityFeePerGas = estimate.maxPriorityFeePerGas;
+        } else {
+          // Legacy transaction
+          txParams.gasPrice = estimate.gasPrice;
+        }
+      }
+      
+      // Call writeContract
+      writeContract(txParams);
+      
+      setProgress(90);
+      setStatus("confirming");
+    } catch (err: any) {
+      console.error("Minting error:", err);
+      setError(err.message || "Minting failed");
+      setStatus("failed");
+    }
+  };
+
   // Mint handler
   const handleMint = async () => {
-    setStatus("minting");
+    setStatus("preparing");
     setProgress(10);
     try {
       // 1. Prepare metadata
@@ -88,31 +193,30 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
         trustScore,
         timestamp: Date.now(),
       };
-      setProgress(30);
+      setProgress(20);
+      
       // 2. Upload to Pinata
       const ipfsUrl = await uploadMetadata(metadata);
       setIpfsUrl(ipfsUrl);
-      setProgress(60);
-      // 3. Prepare mint args and call contract
-      if (!address) throw new Error("Wallet not connected");
+      setProgress(30);
       
-      console.log("Minting NFT with args:", [address, ipfsUrl]);
-      console.log("Contract address:", CONTRACT_ADDRESS);
-      
-      // 4. Call writeContract (mintNFT) - don't await, let wagmi handle it
-      writeContract({
-        address: CONTRACT_ADDRESS,
-        abi: contractABI,
-        functionName: 'mintNFT',
-        args: [address, ipfsUrl],
-      });
-      
-      setProgress(90);
-      setStatus("confirming");
+      // 3. Estimate gas fees
+      await estimateGasFees(ipfsUrl);
     } catch (err: any) {
       console.error("Minting error:", err);
       setError(err.message || "Minting failed");
       setStatus("failed");
+    }
+  };
+
+  // Handle gas confirmation
+  const handleGasConfirmation = (confirmed: boolean) => {
+    if (confirmed && gasEstimate && ipfsUrl) {
+      setShowGasConfirmation(false);
+      proceedWithMinting(ipfsUrl, gasEstimate);
+    } else {
+      setStatus("preparing");
+      setShowGasConfirmation(false);
     }
   };
 
@@ -171,6 +275,96 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
           <RippleButton onClick={handleMint} className="mx-auto">
             Mint NFT Certificate
           </RippleButton>
+        </div>
+      )}
+
+      {status === "estimating" && (
+        <div className="text-center py-8">
+          <div className="mb-8">
+            <div className="relative w-32 h-32 mx-auto mb-6">
+              <div className="absolute inset-0 rounded-full border-4 border-gray-700"></div>
+              <svg className="w-full h-full animate-spin-slow" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="46"
+                  fill="none"
+                  stroke="#6366f1"
+                  strokeWidth="8"
+                  strokeDasharray="289.27"
+                  strokeDashoffset={289.27 - (289.27 * progress) / 100}
+                  strokeLinecap="round"
+                  transform="rotate(-90 50 50)"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-2xl font-bold">{progress}%</span>
+              </div>
+            </div>
+
+            <h3 className="text-xl font-bold mb-2">Estimating Gas Fees</h3>
+            <p className="text-gray-400">
+              Calculating optimal gas settings for your wallet...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {status === "confirming-gas" && gasEstimate && (
+        <div className="text-center py-8">
+          <div className="mb-8">
+            <div className="w-24 h-24 rounded-full bg-yellow-400 flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="h-12 w-12 text-black" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Gas Fee Confirmation</h3>
+            <p className="text-gray-400 mb-6">
+              Please review the estimated gas fees before proceeding with the mint.
+            </p>
+          </div>
+
+          <div className="bg-gray-800 rounded-lg p-6 mb-6 max-w-md mx-auto">
+            <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <Zap className="h-5 w-5 text-mintellect-primary" />
+              Gas Fee Details
+            </h4>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Gas Limit:</span>
+                <span className="font-medium">{gasEstimate.gasLimit.toString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Gas Price:</span>
+                <span className="font-medium">{ethers.formatUnits(gasEstimate.gasPrice, 'gwei')} gwei</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Total Cost:</span>
+                <span className={`font-bold ${parseFloat(gasEstimate.costInEDU) > 0.01 ? 'text-red-400' : 'text-green-400'}`}>
+                  {parseFloat(gasEstimate.costInEDU).toFixed(6)} EDU
+                </span>
+              </div>
+              {parseFloat(gasEstimate.costInEDU) > 0.01 && (
+                <div className="text-yellow-400 text-sm text-center mt-2">
+                  ⚠️ High gas fee detected. Consider waiting for lower network congestion.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-4 justify-center">
+            <RippleButton
+              variant="outline"
+              onClick={() => handleGasConfirmation(false)}
+              className="px-6"
+            >
+              Cancel
+            </RippleButton>
+            <RippleButton
+              onClick={() => handleGasConfirmation(true)}
+              className="px-6"
+            >
+              Proceed with Mint
+            </RippleButton>
+          </div>
         </div>
       )}
 
