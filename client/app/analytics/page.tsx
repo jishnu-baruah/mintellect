@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { ethers } from "ethers"
-import contractABI from "@/lib/MintellectNFT_ABI.json"
+import contractArtifact from "@/lib/MintellectNFT_ABI.json"
+
+// Extract the ABI from the artifact
+const contractABI = contractArtifact.abi;
 import {
   BarChart,
   Bar,

@@ -1,0 +1,13 @@
+{
+  "contractAddress": "0x8df311Efb8160a4Cde6f13C47D0E4c21F949CbdD",
+  "deployer": "0x798b32BDf86253060d598038b1D77C98C36881D6",
+  "network": {
+    "name": "educhain",
+    "chainId": "656476"
+  },
+  "timestamp": "2025-09-05T11:08:47.995Z",
+  "mintPrice": "0.01",
+  "publicMintingEnabled": true,
+  "maxTotalSupply": "10000",
+  "maxTokensPerWallet": "10"
+}
