@@ -44,16 +44,16 @@ const setCorsHeaders = (req, res) => {
 const getLogoBase64 = () => {
   try {
     const logoPath = path.join(process.cwd(), 'src', 'public', 'img', 'Mintellect_logo.png');
-    console.log('Looking for logo at:', logoPath);
-    if (fs.existsSync(logoPath)) {
-      console.log('Logo file found!');
-      const logoBuffer = fs.readFileSync(logoPath);
-      const base64Logo = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-      console.log('Logo converted to base64, length:', base64Logo.length);
-      return base64Logo;
+      console.log('Looking for logo at:', logoPath);
+      if (fs.existsSync(logoPath)) {
+        console.log('Logo file found!');
+        const logoBuffer = fs.readFileSync(logoPath);
+        const base64Logo = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+        console.log('Logo converted to base64, length:', base64Logo.length);
+        return base64Logo;
     } else {
       console.log('Logo file not found at:', logoPath);
-    }
+      }
   } catch (error) {
     console.error('Error reading logo file:', error);
   }
@@ -185,8 +185,8 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
         }
       }
       
-      const browser = await puppeteer.launch({
-        headless: 'new',
+    const browser = await puppeteer.launch({
+      headless: 'new',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -198,22 +198,22 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
           '--disable-gpu'
         ],
         ...(executablePath && { executablePath })
-      });
-      
-      const page = await browser.newPage();
-      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+    });
+    
+    const page = await browser.newPage();
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
       pdf = await page.pdf({
-        format: 'A4',
-        margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
-        printBackground: false,
-        displayHeaderFooter: false,
-        preferCSSPageSize: false,
-        omitBackground: true
-      });
-      
-      await browser.close();
+      format: 'A4',
+      margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
+      printBackground: false,
+      displayHeaderFooter: false,
+      preferCSSPageSize: false,
+      omitBackground: true
+    });
+    
+    await browser.close();
       console.log('PDF generated successfully, size:', pdf.length, 'bytes');
       
     } catch (puppeteerError) {
@@ -397,13 +397,13 @@ router.post('/generate-plagiarism-report-s3', async (req, res) => {
     }
     
     // Generate HTML content for the PDF
-    const htmlContent = generatePlagiarismReportHTML(plagiarismData, documentName, sources);
-    
+        const htmlContent = generatePlagiarismReportHTML(plagiarismData, documentName, sources);
+        
     // Skip Puppeteer if flag is set
     if (SKIP_PUPPETEER) {
       console.log('Skipping Puppeteer - returning HTML URL for manual PDF conversion');
-      const timestamp = Date.now();
-      const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const timestamp = Date.now();
+        const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
       const filename = `${sanitizedName}_plagiarism_report_${timestamp}.html`;
       
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -748,124 +748,124 @@ function generateTrustScoreReportHTML(trustScoreData, documentName, fileId) {
 // Helper function to get CSS content
 function getCSSContent() {
   return `
-    body {
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      line-height: 1.6;
-      color: #333;
-      background: white;
-      padding: 20px;
-      margin: 0;
-    }
-    
-    .header {
-      text-align: center;
-      margin-bottom: 30px;
-      border-bottom: 2px solid #6366f1;
-      padding-bottom: 20px;
-    }
-    
-    .logo-section {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 15px;
-      padding: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-    }
-    
-    .logo {
-      width: 60px;
-      height: 60px;
-      margin-right: 15px;
-      border-radius: 8px;
-      border: 2px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .brand-name {
-      font-size: 28px;
-      font-weight: bold;
-      color: #6366f1;
-    }
-    
-    .report-title {
-      font-size: 24px;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    
-    .document-name {
-      color: #6b7280;
-      font-size: 16px;
-    }
-    
-    .scores-section {
-      display: flex;
-      justify-content: space-around;
-      margin: 30px 0;
-      background: #f8f9fa;
-      padding: 20px;
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
-    }
-    
-    .score-item {
-      text-align: center;
-      flex: 1;
-    }
-    
-    .score-value {
-      font-size: 32px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-    
-    .score-label {
-      color: #6b7280;
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
-    
-    .score-level {
-      font-weight: bold;
-      margin-top: 8px;
-    }
-    
-    .plagiarism-score {
-      color: #ef4444;
-    }
-    
-    .originality-score {
-      color: #10b981;
-    }
-    
-    .progress-section {
-      margin: 25px 0;
-    }
-    
-    .progress-labels {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-    
-    .progress-bar {
-      height: 20px;
-      background: #e5e7eb;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #ef4444, #dc2626);
+        body {
+          font-family: Arial, sans-serif;
+          font-size: 14px;
+          line-height: 1.6;
+          color: #333;
+          background: white;
+          padding: 20px;
+          margin: 0;
+        }
+        
+        .header {
+          text-align: center;
+          margin-bottom: 30px;
+          border-bottom: 2px solid #6366f1;
+          padding-bottom: 20px;
+        }
+        
+        .logo-section {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 15px;
+          padding: 10px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+        }
+        
+        .logo {
+          width: 60px;
+          height: 60px;
+          margin-right: 15px;
+          border-radius: 8px;
+          border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .brand-name {
+          font-size: 28px;
+          font-weight: bold;
+          color: #6366f1;
+        }
+        
+        .report-title {
+          font-size: 24px;
+          font-weight: bold;
+          margin-bottom: 10px;
+        }
+        
+        .document-name {
+          color: #6b7280;
+          font-size: 16px;
+        }
+        
+        .scores-section {
+          display: flex;
+          justify-content: space-around;
+          margin: 30px 0;
+          background: #f8f9fa;
+          padding: 20px;
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+        }
+        
+        .score-item {
+          text-align: center;
+          flex: 1;
+        }
+        
+        .score-value {
+          font-size: 32px;
+          font-weight: bold;
+          margin-bottom: 8px;
+        }
+        
+        .score-label {
+          color: #6b7280;
+          margin-bottom: 8px;
+          font-size: 14px;
+        }
+        
+        .score-level {
+          font-weight: bold;
+          margin-top: 8px;
+        }
+        
+        .plagiarism-score {
+          color: #ef4444;
+        }
+        
+        .originality-score {
+          color: #10b981;
+        }
+        
+        .progress-section {
+          margin: 25px 0;
+        }
+        
+        .progress-labels {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          font-size: 14px;
+        }
+        
+        .progress-bar {
+          height: 20px;
+          background: #e5e7eb;
+          border-radius: 10px;
+          overflow: hidden;
+        }
+        
+        .progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #ef4444, #dc2626);
       width: 0%;
       transition: width 0.3s ease;
-    }
-    
-    .sources-section {
+        }
+        
+        .sources-section {
       margin: 30px 0;
     }
     
@@ -879,9 +879,9 @@ function getCSSContent() {
       display: flex;
       flex-direction: column;
       gap: 15px;
-    }
-    
-    .source-item {
+        }
+        
+        .source-item {
       background: #f9fafb;
       border: 1px solid #e5e7eb;
       border-radius: 8px;
@@ -889,9 +889,9 @@ function getCSSContent() {
     }
     
     .source-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
       margin-bottom: 8px;
     }
     
@@ -906,14 +906,14 @@ function getCSSContent() {
       padding: 4px 8px;
       border-radius: 4px;
       font-size: 12px;
-      font-weight: bold;
-    }
-    
-    .source-url {
-      color: #6b7280;
+          font-weight: bold;
+        }
+        
+        .source-url {
+          color: #6b7280;
       font-size: 12px;
       margin-bottom: 8px;
-      word-break: break-all;
+          word-break: break-all;
     }
     
     .source-excerpt {
@@ -923,15 +923,15 @@ function getCSSContent() {
       font-size: 13px;
       color: #4b5563;
       border-left: 3px solid #6366f1;
-    }
-    
-    .footer {
+        }
+        
+        .footer {
       margin-top: 40px;
       padding-top: 20px;
       border-top: 1px solid #e5e7eb;
-      text-align: center;
-      color: #6b7280;
-      font-size: 12px;
+          text-align: center;
+          color: #6b7280;
+          font-size: 12px;
     }
     
     .footer p {
@@ -940,4 +940,4 @@ function getCSSContent() {
   `;
 }
 
-export default router;
+export default router; 
