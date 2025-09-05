@@ -8,6 +8,8 @@ import fs from 'fs';
 if (process.env.NODE_ENV === 'production') {
   process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer';
   process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'false';
+  // Set the executable path directly
+  process.env.PUPPETEER_EXECUTABLE_PATH = '/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.157/chrome-linux64/chrome';
 }
 
 const router = express.Router();
@@ -163,12 +165,27 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
         try {
           const fs = await import('fs');
           if (fs.existsSync(path)) {
-            executablePath = path;
-            console.log('Found Chrome at:', executablePath);
-            break;
+            console.log('Chrome file exists at:', path);
+            // Check if it's executable
+            try {
+              fs.accessSync(path, fs.constants.F_OK | fs.constants.R_OK | fs.constants.X_OK);
+              executablePath = path;
+              console.log('Found executable Chrome at:', executablePath);
+              break;
+            } catch (accessError) {
+              console.log('Chrome found but not executable, attempting to fix permissions:', path);
+              try {
+                fs.chmodSync(path, '755');
+                executablePath = path;
+                console.log('Made Chrome executable and using:', executablePath);
+                break;
+              } catch (chmodError) {
+                console.log('Could not make Chrome executable:', chmodError.message);
+              }
+            }
           }
         } catch (e) {
-          console.log('Could not check path:', path);
+          console.log('Could not check path:', path, e.message);
         }
       }
       
@@ -242,15 +259,27 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
       ]
     };
     
-    // Set executablePath if we found one, otherwise let Puppeteer use its default
+    // Set executablePath if we found one, otherwise try the known path
     if (executablePath) {
       launchOptions.executablePath = executablePath;
       console.log('Using Chrome executable:', executablePath);
     } else {
-      console.log('No Chrome executable found, using Puppeteer default');
-      // Set the cache directory for Puppeteer
-      process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer';
-      // Don't set executablePath, let Puppeteer find it automatically
+      // Try the known Chrome path from the build log
+      const knownChromePath = '/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.157/chrome-linux64/chrome';
+      try {
+        const fs = await import('fs');
+        if (fs.existsSync(knownChromePath)) {
+          console.log('Using known Chrome path:', knownChromePath);
+          launchOptions.executablePath = knownChromePath;
+        } else {
+          console.log('Known Chrome path not found, using Puppeteer default');
+          // Set the cache directory for Puppeteer
+          process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer';
+        }
+      } catch (e) {
+        console.log('Error checking known Chrome path:', e.message);
+        process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer';
+      }
     }
     
     console.log('Launching Puppeteer with options:', JSON.stringify(launchOptions, null, 2));
@@ -361,21 +390,16 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
         res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        
+        // Add a note about PDF conversion
+        const htmlWithNote = htmlContent.replace(
+          '</body>',
+          '<div style="background: #f0f8ff; border: 1px solid #4a90e2; padding: 15px; margin: 20px 0; border-radius: 5px;"><p style="margin: 0; color: #2c5aa0;"><strong>Note:</strong> This is an HTML version of the report. To convert to PDF, use your browser\'s "Print to PDF" function or save as PDF.</p></div></body>'
+        );
          
-         // Extract CSS and body content from the generated HTML
-         const cssMatch = htmlContent.match(/<style>([\s\S]*)<\/style>/i);
-         const cssContent = cssMatch ? cssMatch[1] : '';
-         const bodyContentMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-         const bodyContent = bodyContentMatch ? bodyContentMatch[1] : htmlContent;
-         
-         const fallbackHtml = `
-           <!DOCTYPE html>
-           <html>
-           <head>
-             <title>Plagiarism Report - ${documentName}</title>
-             <meta charset="UTF-8">
-             <style>
-               ${cssContent}
+        // Use the HTML with the note
+        res.send(htmlWithNote);
+        return;
                
                @media print {
                  body { margin: 0; padding: 20px; }
@@ -468,9 +492,7 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
              </script>
            </body>
            </html>
-         `;
-         
-         return res.send(fallbackHtml);
+         return;
       }
     }
     
