@@ -143,7 +143,8 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
         '/usr/bin/chromium-browser',
         '/usr/bin/chromium',
         '/opt/google/chrome/chrome',
-        '/usr/bin/google-chrome-stable'
+        '/usr/bin/google-chrome-stable',
+        '/opt/render/project/.chromium/chrome-linux/chrome'
       ].filter(Boolean);
       
       console.log('Possible Chrome paths:', possibleChromePaths);
@@ -162,28 +163,37 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
         }
       }
       
-    const browser = await puppeteer.launch({
+    // Configure launch options for Render deployment
+    const launchOptions = {
       headless: 'new',
-        executablePath: executablePath,
-        args: [
-          '--no-sandbox', 
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--no-first-run',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor',
-          '--disable-extensions',
-          '--disable-plugins',
-          '--disable-images',
-          '--disable-javascript',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding',
-          '--disable-field-trial-config',
-          '--disable-ipc-flooding-protection'
-        ]
-    });
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-images',
+        '--disable-javascript',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-field-trial-config',
+        '--disable-ipc-flooding-protection',
+        '--single-process',
+        '--no-zygote'
+      ]
+    };
+    
+    // Only set executablePath if we found one
+    if (executablePath) {
+      launchOptions.executablePath = executablePath;
+    }
+    
+    const browser = await puppeteer.launch(launchOptions);
     
     const page = await browser.newPage();
       
@@ -283,12 +293,13 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
       } catch (alternativeError) {
         console.error('Alternative PDF generation failed:', alternativeError);
         
-                 // Final fallback: Return enhanced HTML content that can be easily converted to PDF
-         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-         res.setHeader('Content-Disposition', `inline; filename="${documentName}_report.html"`);
-         res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
-         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        // Final fallback: Return enhanced HTML content that can be easily converted to PDF
+        console.log('Returning HTML fallback due to Chrome unavailability');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Content-Disposition', `inline; filename="${documentName}_report.html"`);
+        res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
          
          // Extract CSS and body content from the generated HTML
          const cssMatch = htmlContent.match(/<style>([\s\S]*)<\/style>/i);
