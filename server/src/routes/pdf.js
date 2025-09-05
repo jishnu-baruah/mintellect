@@ -11,9 +11,7 @@ const SKIP_PUPPETEER = process.env.SKIP_PUPPETEER === 'true';
 
 // Handle preflight requests for PDF endpoints
 router.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  setCorsHeaders(req, res);
   res.status(200).end();
 });
 
@@ -26,20 +24,36 @@ const s3 = new AWS.S3({
 
 const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'mintellect-pdfs';
 
+// Helper function to set CORS headers
+const setCorsHeaders = (req, res) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'https://app.mintellect.xyz',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001'
+  ];
+  
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigins.includes(origin) ? origin : 'https://app.mintellect.xyz');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+};
+
 // Helper function to get logo as base64
 const getLogoBase64 = () => {
   try {
     const logoPath = path.join(process.cwd(), 'src', 'public', 'img', 'Mintellect_logo.png');
-      console.log('Looking for logo at:', logoPath);
-      if (fs.existsSync(logoPath)) {
-        console.log('Logo file found!');
-        const logoBuffer = fs.readFileSync(logoPath);
-        const base64Logo = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-        console.log('Logo converted to base64, length:', base64Logo.length);
-        return base64Logo;
+    console.log('Looking for logo at:', logoPath);
+    if (fs.existsSync(logoPath)) {
+      console.log('Logo file found!');
+      const logoBuffer = fs.readFileSync(logoPath);
+      const base64Logo = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+      console.log('Logo converted to base64, length:', base64Logo.length);
+      return base64Logo;
     } else {
       console.log('Logo file not found at:', logoPath);
-      }
+    }
   } catch (error) {
     console.error('Error reading logo file:', error);
   }
@@ -48,16 +62,13 @@ const getLogoBase64 = () => {
   return null;
 };
 
-
-
-// Test endpoint for simple PDF generation
-router.get('/test-pdf', async (req, res) => {
+// Test endpoint for PDF generation
+router.get('/test', async (req, res) => {
   try {
-    console.log('Testing simple PDF generation...');
+    console.log('Testing PDF generation...');
     
     const browser = await puppeteer.launch({
       headless: 'new',
-      executablePath: process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     
@@ -131,43 +142,94 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
     // Skip Puppeteer if flag is set
     if (SKIP_PUPPETEER) {
       console.log('Skipping Puppeteer - returning HTML URL for manual PDF conversion');
-      
-      // Return HTML content URL instead of PDF
       const timestamp = Date.now();
       const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
       const filename = `${sanitizedName}_plagiarism_report_${timestamp}.html`;
       
-      // For now, return the HTML content directly
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-      res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      setCorsHeaders(req, res);
       
       return res.send(htmlContent);
     }
+    
+    // Generate PDF using Puppeteer
+    let pdf;
+    
+    try {
+      // Launch Puppeteer with production-ready settings
+      console.log('Launching Puppeteer...');
       
-      // Return enhanced HTML content that can be easily converted to PDF
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', `inline; filename="${documentName}_report.html"`);
-      res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      const possibleChromePaths = [
+        process.env.CHROME_BIN,
+        process.env.PUPPETEER_EXECUTABLE_PATH,
+        '/usr/bin/google-chrome',
+        '/usr/bin/chromium-browser',
+        '/usr/bin/chromium',
+        '/opt/google/chrome/chrome',
+        '/usr/bin/google-chrome-stable'
+      ].filter(Boolean);
       
-      // Extract CSS and body content from the generated HTML
-      const cssMatch = htmlContent.match(/<style>([\s\S]*)<\/style>/i);
-      const cssContent = cssMatch ? cssMatch[1] : '';
-      const bodyContentMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-      const bodyContent = bodyContentMatch ? bodyContentMatch[1] : htmlContent;
+      console.log('Possible Chrome paths:', possibleChromePaths);
       
+      let executablePath;
+      for (const path of possibleChromePaths) {
+        try {
+          if (fs.existsSync(path)) {
+            executablePath = path;
+            console.log('Found Chrome at:', executablePath);
+            break;
+          }
+        } catch (e) {
+          console.log('Could not check path:', path);
+        }
+      }
+      
+      const browser = await puppeteer.launch({
+        headless: 'new',
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu'
+        ],
+        ...(executablePath && { executablePath })
+      });
+      
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      pdf = await page.pdf({
+        format: 'A4',
+        margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
+        printBackground: false,
+        displayHeaderFooter: false,
+        preferCSSPageSize: false,
+        omitBackground: true
+      });
+      
+      await browser.close();
+      console.log('PDF generated successfully, size:', pdf.length, 'bytes');
+      
+    } catch (puppeteerError) {
+      console.error('Puppeteer error:', puppeteerError);
+      console.log('Attempting alternative PDF generation...');
+      
+      // Fallback: Return HTML content for manual PDF conversion
       const fallbackHtml = `
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
-          <title>Plagiarism Report - ${documentName}</title>
           <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Plagiarism Report - ${documentName}</title>
           <style>
-            ${cssContent}
+            ${getCSSContent()}
             
             @media print {
               body { margin: 0; padding: 20px; }
@@ -273,299 +335,17 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
           </div>
           
           <div class="report-content">
-            ${bodyContent}
+            ${htmlContent}
           </div>
-          
-          <script>
-            // Auto-print dialog on load (optional)
-            // window.onload = function() {
-            //   setTimeout(() => {
-            //     window.print();
-            //   }, 1000);
-            // }
-          </script>
         </body>
         </html>
       `;
       
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Disposition', `inline; filename="${documentName}_plagiarism_report.html"`);
+      setCorsHeaders(req, res);
+      
       return res.send(fallbackHtml);
-    }
-    console.log('HTML content preview:', htmlContent.substring(0, 500));
-    
-    let pdf;
-    
-    try {
-      // Launch Puppeteer with production-ready settings
-      console.log('Chrome paths:', {
-        CHROME_BIN: process.env.CHROME_BIN,
-        PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH
-      });
-      
-      // Try to find Chrome in common locations
-      const possibleChromePaths = [
-        process.env.CHROME_BIN,
-        process.env.PUPPETEER_EXECUTABLE_PATH,
-        '/usr/bin/google-chrome',
-        '/usr/bin/chromium-browser',
-        '/usr/bin/chromium',
-        '/opt/google/chrome/chrome',
-        '/usr/bin/google-chrome-stable'
-      ].filter(Boolean);
-      
-      console.log('Possible Chrome paths:', possibleChromePaths);
-      
-      let executablePath;
-      for (const path of possibleChromePaths) {
-        try {
-          const fs = await import('fs');
-          if (fs.existsSync(path)) {
-            executablePath = path;
-            console.log('Found Chrome at:', executablePath);
-            break;
-          }
-        } catch (e) {
-          console.log('Could not check path:', path);
-        }
-      }
-      
-    const browser = await puppeteer.launch({
-      headless: 'new',
-        executablePath: executablePath,
-        args: [
-          '--no-sandbox', 
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--no-first-run',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor',
-          '--disable-extensions',
-          '--disable-plugins',
-          '--disable-images',
-          '--disable-javascript',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding',
-          '--disable-field-trial-config',
-          '--disable-ipc-flooding-protection'
-        ]
-    });
-    
-    const page = await browser.newPage();
-      
-      try {
-        console.log('Setting viewport...');
-        // Set viewport for consistent rendering
-        await page.setViewport({ width: 1200, height: 800 });
-        
-        console.log('Setting content...');
-        // Set content and wait for it to be fully rendered
-        await page.setContent(htmlContent, { 
-          waitUntil: ['networkidle0', 'domcontentloaded', 'load']
-        });
-        
-        console.log('Waiting for rendering...');
-        // Additional wait to ensure everything is rendered
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        console.log('Generating PDF...');
-        // Generate PDF with production-optimized settings
-        pdf = await page.pdf({
-      format: 'A4',
-      margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
-          printBackground: true,
-      displayHeaderFooter: false,
-          preferCSSPageSize: true,
-          omitBackground: false,
-          timeout: 30000
-        });
-        
-        console.log('PDF generation completed successfully');
-        
-        console.log('PDF generated, size:', pdf.length, 'bytes');
-        console.log('PDF first 100 bytes:', pdf.slice(0, 100).toString('hex'));
-        console.log('PDF header check:', pdf.slice(0, 4).toString('ascii'));
-      } catch (browserError) {
-        console.error('Browser error:', browserError);
-        throw new Error(`PDF generation failed: ${browserError.message}`);
-      } finally {
-        try {
-          await browser.close();
-        } catch (closeError) {
-          console.error('Error closing browser:', closeError);
-        }
-      }
-    } catch (puppeteerError) {
-      console.error('Puppeteer error:', puppeteerError);
-      
-             // Try alternative PDF generation method
-       try {
-         console.log('Attempting alternative PDF generation...');
-         
-    const browser = await puppeteer.launch({
-      headless: 'new',
-           executablePath: process.env.CHROME_BIN || process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-           args: [
-             '--no-sandbox', 
-             '--disable-setuid-sandbox',
-             '--disable-dev-shm-usage',
-             '--disable-gpu',
-             '--no-first-run'
-           ]
-         });
-         
-         console.log('Alternative browser launched successfully');
-    const page = await browser.newPage();
-         console.log('Alternative page created');
-         
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-         console.log('Alternative content set');
-         
-         await new Promise(resolve => setTimeout(resolve, 3000));
-         console.log('Alternative rendering wait completed');
-         
-         pdf = await page.pdf({
-      format: 'A4',
-      margin: { top: '20mm', right: '20mm', bottom: '20mm', left: '20mm' },
-      printBackground: false,
-      displayHeaderFooter: false,
-      preferCSSPageSize: false,
-      omitBackground: true
-    });
-    
-         console.log('Alternative PDF generated, size:', pdf.length, 'bytes');
-    await browser.close();
-         console.log('Alternative browser closed');
-         
-         console.log('Alternative PDF generation successful, size:', pdf.length, 'bytes');
-         
-         // Verify PDF
-         const pdfHeader = pdf.slice(0, 4).toString('ascii');
-         console.log('Alternative PDF header:', pdfHeader);
-         if (pdfHeader !== '%PDF') {
-           throw new Error('Alternative PDF generation also failed');
-         }
-        
-      } catch (alternativeError) {
-        console.error('Alternative PDF generation failed:', alternativeError);
-        
-                 // Final fallback: Return enhanced HTML content that can be easily converted to PDF
-         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-         res.setHeader('Content-Disposition', `inline; filename="${documentName}_report.html"`);
-         res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
-         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-         
-         // Extract CSS and body content from the generated HTML
-         const cssMatch = htmlContent.match(/<style>([\s\S]*)<\/style>/i);
-         const cssContent = cssMatch ? cssMatch[1] : '';
-         const bodyContentMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-         const bodyContent = bodyContentMatch ? bodyContentMatch[1] : htmlContent;
-         
-         const fallbackHtml = `
-           <!DOCTYPE html>
-           <html>
-           <head>
-             <title>Plagiarism Report - ${documentName}</title>
-             <meta charset="UTF-8">
-             <style>
-               ${cssContent}
-               
-               @media print {
-                 body { margin: 0; padding: 20px; }
-                 .no-print { display: none; }
-                 .page-break { page-break-before: always; }
-               }
-               
-               body { 
-                 font-family: Arial, sans-serif; 
-                 padding: 20px; 
-                 margin: 0;
-                 background: white;
-                 color: #333;
-               }
-               
-               .instructions {
-                 background: #f8f9fa;
-                 padding: 15px;
-                 border-radius: 8px;
-                 margin-bottom: 20px;
-                 border-left: 4px solid #6366f1;
-                 text-align: center;
-               }
-               
-               .instructions h3 {
-                 margin-top: 0;
-                 color: #6366f1;
-               }
-               
-               .instructions ol {
-                 margin: 10px 0;
-                 padding-left: 20px;
-                 text-align: left;
-               }
-               
-               .instructions li {
-                 margin: 5px 0;
-               }
-               
-               .print-button {
-                 background: #6366f1;
-                 color: white;
-                 border: none;
-                 padding: 10px 20px;
-                 border-radius: 5px;
-                 cursor: pointer;
-                 font-size: 16px;
-                 margin: 10px 5px;
-               }
-               
-               .print-button:hover {
-                 background: #4f46e5;
-               }
-               
-               .no-print {
-                 margin: 20px 0;
-               }
-               
-               .report-content {
-                 margin-top: 30px;
-               }
-             </style>
-           </head>
-           <body>
-             <div class="no-print">
-               <div class="instructions">
-                 <h3>📄 How to Save as PDF:</h3>
-                 <ol>
-                   <li><strong>Press Ctrl+P (Windows) or Cmd+P (Mac)</strong></li>
-                   <li>Select "Save as PDF" as the destination</li>
-                   <li>Choose your preferred settings</li>
-                   <li>Click "Save" to download the PDF</li>
-                 </ol>
-                 <button class="print-button" onclick="window.print()">🖨️ Print/Save as PDF</button>
-                 <button class="print-button" onclick="window.close()">❌ Close</button>
-               </div>
-             </div>
-             
-             <div class="report-content">
-               ${bodyContent}
-             </div>
-             
-             <script>
-               // Auto-print dialog on load (optional)
-               // window.onload = function() {
-               //   setTimeout(() => {
-               //     window.print();
-               //   }, 1000);
-               // }
-             </script>
-           </body>
-           </html>
-         `;
-         
-         return res.send(fallbackHtml);
-      }
     }
     
     // Verify PDF was generated correctly
@@ -577,26 +357,18 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
     const pdfHeader = pdf.slice(0, 4).toString('ascii');
     if (pdfHeader !== '%PDF') {
       console.error('Invalid PDF header:', pdfHeader);
-      throw new Error('PDF generation failed - invalid PDF format');
+      throw new Error('Generated file is not a valid PDF');
     }
     
-    console.log('PDF generated successfully, size:', pdf.length, 'bytes');
-    console.log('PDF header:', pdfHeader);
+    console.log('PDF verification passed, sending to client...');
     
-    // Generate filename
-        const timestamp = Date.now();
-        const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const filename = `${sanitizedName}_plagiarism_report_${timestamp}.pdf`;
-        
-    console.log('PDF generated, sending directly to client:', filename);
-        
-    // Set headers for PDF download
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Length', pdf.length);
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    // Set response headers
+    const timestamp = Date.now();
+    const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const filename = `${sanitizedName}_plagiarism_report_${timestamp}.pdf`;
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -626,6 +398,20 @@ router.post('/generate-plagiarism-report-s3', async (req, res) => {
     
     // Generate HTML content for the PDF
     const htmlContent = generatePlagiarismReportHTML(plagiarismData, documentName, sources);
+    
+    // Skip Puppeteer if flag is set
+    if (SKIP_PUPPETEER) {
+      console.log('Skipping Puppeteer - returning HTML URL for manual PDF conversion');
+      const timestamp = Date.now();
+      const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const filename = `${sanitizedName}_plagiarism_report_${timestamp}.html`;
+      
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+      setCorsHeaders(req, res);
+      
+      return res.send(htmlContent);
+    }
     
     // Launch Puppeteer
     const browser = await puppeteer.launch({
@@ -688,7 +474,7 @@ router.post('/generate-plagiarism-report-s3', async (req, res) => {
       message: 'PDF generated and uploaded successfully',
       downloadUrl: downloadUrl,
       filename: filename,
-      expiresAt: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
+      s3Key: `plagiarism-reports/${filename}`
     });
     
   } catch (error) {
@@ -705,14 +491,28 @@ router.post('/generate-trust-score-report-s3', async (req, res) => {
   try {
     console.log('Generating Trust Score Report for S3 storage...');
     
-    const { trustScoreData, documentName, plagiarismData } = req.body;
+    const { trustScoreData, documentName, fileId } = req.body;
     
-    if (!trustScoreData || !documentName) {
+    if (!trustScoreData || !documentName || !fileId) {
       return res.status(400).json({ error: 'Missing required data' });
     }
     
-    // Generate HTML content for the PDF
-    const htmlContent = generateTrustScoreReportHTML(trustScoreData, documentName, plagiarismData);
+    // Generate HTML content for the Trust Score Report
+    const htmlContent = generateTrustScoreReportHTML(trustScoreData, documentName, fileId);
+    
+    // Skip Puppeteer if flag is set
+    if (SKIP_PUPPETEER) {
+      console.log('Skipping Puppeteer - returning HTML URL for manual PDF conversion');
+      const timestamp = Date.now();
+      const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const filename = `${sanitizedName}_trust_score_report_${timestamp}.html`;
+      
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+      setCorsHeaders(req, res);
+      
+      return res.send(htmlContent);
+    }
     
     // Launch Puppeteer
     const browser = await puppeteer.launch({
@@ -750,9 +550,9 @@ router.post('/generate-trust-score-report-s3', async (req, res) => {
       ContentDisposition: `attachment; filename="${filename}"`,
       Metadata: {
         'document-name': documentName,
+        'file-id': fileId,
         'generated-at': new Date().toISOString(),
-        'trust-score': trustScoreData.trustScore?.toString() || trustScoreData.overallScore?.toString() || '0',
-        'trust-level': trustScoreData.trustLevel || 'Unknown'
+        'trust-score': trustScoreData.trustScore?.toString() || '0'
       }
     };
     
@@ -763,7 +563,7 @@ router.post('/generate-trust-score-report-s3', async (req, res) => {
     const downloadParams = {
       Bucket: BUCKET_NAME,
       Key: `trust-score-reports/${filename}`,
-      Expires: 3600 // 1 hour
+      Expires: 3600 // 1 hour from now
     };
     
     const downloadUrl = await s3.getSignedUrlPromise('getObject', downloadParams);
@@ -775,7 +575,7 @@ router.post('/generate-trust-score-report-s3', async (req, res) => {
       message: 'Trust Score Report generated and uploaded successfully',
       downloadUrl: downloadUrl,
       filename: filename,
-      expiresAt: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
+      s3Key: `trust-score-reports/${filename}`
     });
     
   } catch (error) {
@@ -787,7 +587,7 @@ router.post('/generate-trust-score-report-s3', async (req, res) => {
   }
 });
 
-// Helper function to generate HTML content
+// Helper function to generate HTML content for plagiarism report
 function generatePlagiarismReportHTML(plagiarismData, documentName, sources) {
   const plagiarismScore = plagiarismData.plagiarism || plagiarismData.similarity || 0;
   const originalityScore = plagiarismData.originality || (100 - plagiarismScore);
@@ -819,278 +619,81 @@ function generatePlagiarismReportHTML(plagiarismData, documentName, sources) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Plagiarism Report</title>
       <style>
-        body {
-          font-family: Arial, sans-serif;
-          font-size: 14px;
-          line-height: 1.6;
-          color: #333;
-          background: white;
-          padding: 20px;
-          margin: 0;
-        }
-        
-        .header {
-          text-align: center;
-          margin-bottom: 30px;
-          border-bottom: 2px solid #6366f1;
-          padding-bottom: 20px;
-        }
-        
-        .logo-section {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 15px;
-          padding: 10px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 10px;
-        }
-        
-        .logo {
-          width: 60px;
-          height: 60px;
-          margin-right: 15px;
-          border-radius: 8px;
-          border: 2px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .brand-name {
-          font-size: 28px;
-          font-weight: bold;
-          color: #6366f1;
-        }
-        
-        .report-title {
-          font-size: 24px;
-          font-weight: bold;
-          margin-bottom: 10px;
-        }
-        
-        .document-name {
-          color: #6b7280;
-          font-size: 16px;
-        }
-        
-        .scores-section {
-          display: flex;
-          justify-content: space-around;
-          margin: 30px 0;
-          background: #f8f9fa;
-          padding: 20px;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-        }
-        
-        .score-item {
-          text-align: center;
-          flex: 1;
-        }
-        
-        .score-value {
-          font-size: 32px;
-          font-weight: bold;
-          margin-bottom: 8px;
-        }
-        
-        .score-label {
-          color: #6b7280;
-          margin-bottom: 8px;
-          font-size: 14px;
-        }
-        
-        .score-level {
-          font-weight: bold;
-          margin-top: 8px;
-        }
-        
-        .plagiarism-score {
-          color: #ef4444;
-        }
-        
-        .originality-score {
-          color: #10b981;
-        }
-        
-        .progress-section {
-          margin: 25px 0;
-        }
-        
-        .progress-labels {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          font-size: 14px;
-        }
-        
-        .progress-bar {
-          height: 20px;
-          background: #e5e7eb;
-          border-radius: 10px;
-          overflow: hidden;
-        }
-        
-        .progress-fill {
-          height: 100%;
-          background: linear-gradient(90deg, #ef4444, #dc2626);
-          width: ${plagiarismScore}%;
-        }
-        
-        .sources-section {
-          background: white;
-          padding: 20px;
-          border-radius: 8px;
-          margin-top: 25px;
-          border: 1px solid #e5e7eb;
-        }
-        
-        .sources-title {
-          margin: 0 0 20px 0;
-          color: #ef4444;
-          font-size: 18px;
-          border-bottom: 1px solid #ef4444;
-          padding-bottom: 10px;
-        }
-        
-        .source-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 0;
-          border-bottom: 1px solid #f3f4f6;
-        }
-        
-        .source-item:last-child {
-          border-bottom: none;
-        }
-        
-        .source-info {
-          flex: 1;
-        }
-        
-        .source-name {
-          font-weight: bold;
-          font-size: 14px;
-        }
-        
-        .source-url {
-          color: #6b7280;
-          font-size: 11px;
-          word-break: break-all;
-          margin-top: 5px;
-        }
-        
-        .source-percentage {
-          color: #ef4444;
-          font-weight: bold;
-          margin-left: 15px;
-          font-size: 16px;
-        }
-        
-        .footer {
-          text-align: center;
-          margin-top: 30px;
-          color: #6b7280;
-          font-size: 12px;
-          border-top: 1px solid #e5e7eb;
-          padding-top: 15px;
-        }
+        ${getCSSContent()}
       </style>
     </head>
     <body>
       <div class="header">
         <div class="logo-section">
-          ${logoBase64 ? `<img src="${logoBase64}" alt="Mintellect" class="logo">` : '<div class="logo" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">M</div>'}
+          ${logoBase64 ? `<img src="${logoBase64}" alt="Mintellect Logo" class="logo">` : ''}
           <div class="brand-name">Mintellect</div>
         </div>
-        <div class="report-title">Plagiarism Report</div>
-        <div class="document-name">${documentName}</div>
+        <h1 class="report-title">Plagiarism Detection Report</h1>
+        <p class="document-name">Document: ${documentName}</p>
       </div>
       
       <div class="scores-section">
         <div class="score-item">
-          <div class="score-value plagiarism-score">${formatPercentage(plagiarismScore)}%</div>
           <div class="score-label">Plagiarism Score</div>
+          <div class="score-value plagiarism-score">${formatPercentage(plagiarismScore)}%</div>
           <div class="score-level plagiarism-score">${getScoreLevel(plagiarismScore)}</div>
         </div>
         <div class="score-item">
-          <div class="score-value originality-score">${formatPercentage(originalityScore)}%</div>
           <div class="score-label">Originality Score</div>
+          <div class="score-value originality-score">${formatPercentage(originalityScore)}%</div>
           <div class="score-level originality-score">${getScoreLevel(originalityScore, true)}</div>
         </div>
       </div>
       
       <div class="progress-section">
         <div class="progress-labels">
-          <span>Plagiarism</span>
-          <span>Originality</span>
+          <span>Original</span>
+          <span>Plagiarized</span>
         </div>
         <div class="progress-bar">
-          <div class="progress-fill"></div>
+          <div class="progress-fill" style="width: ${plagiarismScore}%"></div>
         </div>
       </div>
       
       ${sources && sources.length > 0 ? `
         <div class="sources-section">
-          <h3 class="sources-title">Plagiarism Sources (${sources.length})</h3>
-          ${sources.map((source, index) => `
-            <div class="source-item">
-              <div class="source-info">
-                <div class="source-name">${index + 1}. ${source.title || source.name || `Source ${index + 1}`}</div>
-                ${source.url ? `<div class="source-url">${source.url}</div>` : ''}
+          <h2>Similarity Sources</h2>
+          <div class="sources-list">
+            ${sources.map((source, index) => `
+              <div class="source-item">
+                <div class="source-header">
+                  <span class="source-title">${source.title || `Source ${index + 1}`}</span>
+                  <span class="source-similarity">${formatPercentage(source.similarity || 0)}% similar</span>
+                </div>
+                <div class="source-url">${source.url || 'No URL available'}</div>
+                ${source.excerpt ? `<div class="source-excerpt">${source.excerpt}</div>` : ''}
               </div>
-              <div class="source-percentage">${formatPercentage(source.similarity || source.score || 0)}%</div>
-            </div>
-          `).join('')}
-        </div>
-      ` : `
-        <div class="sources-section">
-          <h3 class="sources-title">Plagiarism Sources (0)</h3>
-          <div class="source-item">
-            <div class="source-info">
-              <div class="source-name">No sources detected</div>
-              <div class="source-url">This document appears to be original or no matching sources were found</div>
-            </div>
-            <div class="source-percentage">0%</div>
+            `).join('')}
           </div>
         </div>
-      `}
+      ` : ''}
       
       <div class="footer">
-        <div>Generated by Mintellect</div>
-        <div style="margin-top: 8px;">${new Date().toLocaleString()}</div>
+        <p>Generated by Mintellect on ${new Date().toLocaleDateString()}</p>
+        <p>This report is for informational purposes only.</p>
       </div>
     </body>
     </html>
   `;
 }
 
-// Helper function to generate Trust Score Report HTML content
-function generateTrustScoreReportHTML(trustScoreData, documentName, plagiarismData) {
-  const overallScore = trustScoreData.trustScore || trustScoreData.overallScore || 0;
-  const trustLevel = trustScoreData.trustLevel || 'Unknown';
-  const breakdown = trustScoreData.breakdown?.components || {};
-  const aiAnalysis = trustScoreData.aiAnalysis || {};
-  const recommendations = trustScoreData.recommendations || [];
+// Helper function to generate HTML content for trust score report
+function generateTrustScoreReportHTML(trustScoreData, documentName, fileId) {
+  const trustScore = trustScoreData.trustScore || 0;
   const logoBase64 = getLogoBase64();
   
-  // Helper functions
   const formatPercentage = (value) => Number(value).toFixed(2);
-  const getScoreLevel = (score) => {
+  const getTrustLevel = (score) => {
     if (score >= 80) return 'Excellent';
     if (score >= 60) return 'Good';
     if (score >= 40) return 'Fair';
     if (score >= 20) return 'Poor';
     return 'Very Poor';
-  };
-  
-  const getTrustLevelColor = (level) => {
-    switch (level.toLowerCase()) {
-      case 'high': return '#10b981';
-      case 'moderate': return '#f59e0b';
-      case 'low': return '#ef4444';
-      case 'very low': return '#dc2626';
-      default: return '#6b7280';
-    }
   };
 
   return `
@@ -1099,307 +702,242 @@ function generateTrustScoreReportHTML(trustScoreData, documentName, plagiarismDa
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Trust Score Report - ${documentName}</title>
+      <title>Trust Score Report</title>
       <style>
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          margin: 0;
-          padding: 20px;
-          background: #f8f9fa;
-        }
-        .header {
-          text-align: center;
-          margin-bottom: 30px;
-          padding: 20px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border-radius: 10px;
-        }
-        .header h1 {
-          margin: 0;
-          font-size: 28px;
-          font-weight: 700;
-        }
-        .header p {
-          margin: 10px 0 0 0;
-          opacity: 0.9;
-        }
-        .logo-section {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 15px;
-          padding: 10px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 10px;
-        }
-        .logo {
-          width: 60px;
-          height: 60px;
-          margin-right: 15px;
-          border-radius: 8px;
-          border: 2px solid rgba(255, 255, 255, 0.2);
-        }
-        .brand-name {
-          font-size: 28px;
-          font-weight: bold;
-          color: white;
-        }
-        .score-section {
-          background: white;
-          padding: 25px;
-          margin: 20px 0;
-          border-radius: 10px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .overall-score {
-          text-align: center;
-          margin-bottom: 30px;
-        }
-        .score-circle {
-          width: 120px;
-          height: 120px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 15px;
-          font-size: 24px;
-          font-weight: bold;
-          color: white;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .trust-level {
-          display: inline-block;
-          padding: 8px 16px;
-          border-radius: 20px;
-          font-weight: bold;
-          color: white;
-          background-color: ${getTrustLevelColor(trustLevel)};
-        }
-        .breakdown-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 20px;
-          margin: 20px 0;
-        }
-        .breakdown-item {
-          background: #f8f9fa;
-          padding: 15px;
-          border-radius: 8px;
-          text-align: center;
-        }
-        .breakdown-item h4 {
-          margin: 0 0 10px 0;
-          color: #495057;
-          font-size: 14px;
-        }
-        .breakdown-score {
-          font-size: 24px;
-          font-weight: bold;
-          color: #667eea;
-        }
-        .ai-analysis {
-          background: white;
-          padding: 25px;
-          margin: 20px 0;
-          border-radius: 10px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .ai-analysis h3 {
-          color: #495057;
-          margin-bottom: 20px;
-          border-bottom: 2px solid #e9ecef;
-          padding-bottom: 10px;
-        }
-        .ai-metrics {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 15px;
-          margin-bottom: 20px;
-        }
-        .ai-metric {
-          text-align: center;
-          padding: 10px;
-          background: #f8f9fa;
-          border-radius: 6px;
-        }
-        .ai-metric-label {
-          font-size: 12px;
-          color: #6c757d;
-          margin-bottom: 5px;
-        }
-        .ai-metric-value {
-          font-size: 18px;
-          font-weight: bold;
-          color: #495057;
-        }
-        .recommendations {
-          background: white;
-          padding: 25px;
-          margin: 20px 0;
-          border-radius: 10px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .recommendations h3 {
-          color: #495057;
-          margin-bottom: 20px;
-          border-bottom: 2px solid #e9ecef;
-          padding-bottom: 10px;
-        }
-        .recommendation-item {
-          background: #e3f2fd;
-          padding: 15px;
-          margin: 10px 0;
-          border-radius: 6px;
-          border-left: 4px solid #2196f3;
-        }
-        .footer {
-          text-align: center;
-          margin-top: 40px;
-          padding: 20px;
-          color: #6c757d;
-          font-size: 12px;
-        }
-        .page-break {
-          page-break-before: always;
-        }
+        ${getCSSContent()}
       </style>
     </head>
     <body>
       <div class="header">
         <div class="logo-section">
-          ${logoBase64 ? `<img src="${logoBase64}" alt="Mintellect" class="logo">` : '<div class="logo" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">M</div>'}
+          ${logoBase64 ? `<img src="${logoBase64}" alt="Mintellect Logo" class="logo">` : ''}
           <div class="brand-name">Mintellect</div>
         </div>
-        <h1>Trust Score Report</h1>
-        <p>Document: ${documentName}</p>
-        <p>Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+        <h1 class="report-title">Trust Score Report</h1>
+        <p class="document-name">Document: ${documentName}</p>
+        <p class="document-name">File ID: ${fileId}</p>
       </div>
-
-      <div class="score-section">
-        <div class="overall-score">
-          <div class="score-circle">${overallScore}%</div>
-          <div class="trust-level">${trustLevel}</div>
-          <p style="margin-top: 10px; color: #6c757d;">Overall Trust Score</p>
-        </div>
-      </div>
-
-      <div class="score-section">
-        <h3 style="color: #495057; margin-bottom: 20px; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">
-          Component Breakdown
-        </h3>
-        <div class="breakdown-grid">
-          ${Object.entries(breakdown).map(([key, component]) => `
-            <div class="breakdown-item">
-              <h4>${key.charAt(0).toUpperCase() + key.slice(1)}</h4>
-              <div class="breakdown-score">${component.score || 0}%</div>
-              <div style="font-size: 12px; color: #6c757d; margin-top: 5px;">
-                Weight: ${component.weight ? (component.weight * 100).toFixed(0) : 0}%
-              </div>
-              <div style="font-size: 12px; color: #6c757d;">
-                Contribution: ${component.contribution ? (component.contribution * 100).toFixed(1) : 0}%
-              </div>
-            </div>
-          `).join('')}
+      
+      <div class="scores-section">
+        <div class="score-item">
+          <div class="score-label">Trust Score</div>
+          <div class="score-value originality-score">${formatPercentage(trustScore)}%</div>
+          <div class="score-level originality-score">${getTrustLevel(trustScore)}</div>
         </div>
       </div>
-
-      ${aiAnalysis.aiProbability !== undefined ? `
-        <div class="ai-analysis">
-          <h3>AI Analysis Results</h3>
-          <div class="ai-metrics">
-            <div class="ai-metric">
-              <div class="ai-metric-label">AI Probability</div>
-              <div class="ai-metric-value">${formatPercentage(aiAnalysis.aiProbability)}%</div>
-            </div>
-            <div class="ai-metric">
-              <div class="ai-metric-label">Human Written</div>
-              <div class="ai-metric-value">${formatPercentage(aiAnalysis.humanWrittenProbability)}%</div>
-            </div>
-            <div class="ai-metric">
-              <div class="ai-metric-label">Academic Quality</div>
-              <div class="ai-metric-value">${formatPercentage(aiAnalysis.academicQuality)}%</div>
-            </div>
-            <div class="ai-metric">
-              <div class="ai-metric-label">Methodology Score</div>
-              <div class="ai-metric-value">${formatPercentage(aiAnalysis.methodologyScore)}%</div>
-            </div>
-            <div class="ai-metric">
-              <div class="ai-metric-label">Citation Quality</div>
-              <div class="ai-metric-value">${formatPercentage(aiAnalysis.citationQuality)}%</div>
-            </div>
-            <div class="ai-metric">
-              <div class="ai-metric-label">Originality Score</div>
-              <div class="ai-metric-value">${formatPercentage(aiAnalysis.originalityScore)}%</div>
-            </div>
-            <div class="ai-metric">
-              <div class="ai-metric-label">Confidence</div>
-              <div class="ai-metric-value">${formatPercentage(aiAnalysis.confidence)}%</div>
-            </div>
-            <div class="ai-metric">
-              <div class="ai-metric-label">Classification</div>
-              <div class="ai-metric-value">${aiAnalysis.classification || 'N/A'}</div>
-            </div>
-          </div>
-          ${aiAnalysis.analysis ? `
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 20px;">
-              <strong>Analysis:</strong> ${aiAnalysis.analysis}
-            </div>
-          ` : ''}
-          ${aiAnalysis.flags && aiAnalysis.flags.length > 0 ? `
-            <div style="margin-top: 20px;">
-              <strong>Flags:</strong>
-              <ul style="margin: 10px 0; padding-left: 20px;">
-                ${aiAnalysis.flags.map(flag => `<li>${flag}</li>`).join('')}
-              </ul>
-            </div>
-          ` : ''}
+      
+      <div class="progress-section">
+        <div class="progress-labels">
+          <span>Low Trust</span>
+          <span>High Trust</span>
         </div>
-      ` : ''}
-
-      ${recommendations.length > 0 ? `
-        <div class="recommendations">
-          <h3>Recommendations</h3>
-          ${recommendations.map(rec => `
-            <div class="recommendation-item">
-              ${rec}
-            </div>
-          `).join('')}
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${trustScore}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
         </div>
-      ` : ''}
-
-      ${plagiarismData ? `
-        <div class="score-section">
-          <h3 style="color: #495057; margin-bottom: 20px; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">
-            Plagiarism Analysis Summary
-          </h3>
-          <div class="breakdown-grid">
-            <div class="breakdown-item">
-              <h4>Plagiarism Score</h4>
-              <div class="breakdown-score">${plagiarismData.plagiarism || plagiarismData.similarity || 0}%</div>
-            </div>
-            <div class="breakdown-item">
-              <h4>Originality Score</h4>
-              <div class="breakdown-score">${plagiarismData.originality || (100 - (plagiarismData.plagiarism || plagiarismData.similarity || 0))}%</div>
-            </div>
-            <div class="breakdown-item">
-              <h4>Matches Found</h4>
-              <div class="breakdown-score">${plagiarismData.matches?.length || 0}</div>
-            </div>
-          </div>
-        </div>
-      ` : ''}
-
+      </div>
+      
       <div class="footer">
-        <p>Generated by Mintellect Trust Score System</p>
-        <p>This report provides a comprehensive analysis of document trustworthiness and academic integrity.</p>
+        <p>Generated by Mintellect on ${new Date().toLocaleDateString()}</p>
+        <p>This report is for informational purposes only.</p>
       </div>
     </body>
     </html>
   `;
 }
 
-export default router; 
+// Helper function to get CSS content
+function getCSSContent() {
+  return `
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #333;
+      background: white;
+      padding: 20px;
+      margin: 0;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #6366f1;
+      padding-bottom: 20px;
+    }
+    
+    .logo-section {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+    
+    .logo {
+      width: 60px;
+      height: 60px;
+      margin-right: 15px;
+      border-radius: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .brand-name {
+      font-size: 28px;
+      font-weight: bold;
+      color: #6366f1;
+    }
+    
+    .report-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    .document-name {
+      color: #6b7280;
+      font-size: 16px;
+    }
+    
+    .scores-section {
+      display: flex;
+      justify-content: space-around;
+      margin: 30px 0;
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .score-item {
+      text-align: center;
+      flex: 1;
+    }
+    
+    .score-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    
+    .score-label {
+      color: #6b7280;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .score-level {
+      font-weight: bold;
+      margin-top: 8px;
+    }
+    
+    .plagiarism-score {
+      color: #ef4444;
+    }
+    
+    .originality-score {
+      color: #10b981;
+    }
+    
+    .progress-section {
+      margin: 25px 0;
+    }
+    
+    .progress-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    
+    .progress-bar {
+      height: 20px;
+      background: #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ef4444, #dc2626);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    .sources-section {
+      margin: 30px 0;
+    }
+    
+    .sources-section h2 {
+      color: #374151;
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+    
+    .sources-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .source-item {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    
+    .source-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .source-title {
+      font-weight: bold;
+      color: #374151;
+    }
+    
+    .source-similarity {
+      background: #fef3c7;
+      color: #92400e;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .source-url {
+      color: #6b7280;
+      font-size: 12px;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+    
+    .source-excerpt {
+      background: #f3f4f6;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #4b5563;
+      border-left: 3px solid #6366f1;
+    }
+    
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+      color: #6b7280;
+      font-size: 12px;
+    }
+    
+    .footer p {
+      margin: 5px 0;
+    }
+  `;
+}
+
+export default router;

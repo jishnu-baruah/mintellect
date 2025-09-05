@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "NODE_ENV=development nodemon server.js",
+    "dev": "nodemon server.js",
     "dev-start": "node dev-start.js",
     "lint": "next lint",
     "build": "next build",
