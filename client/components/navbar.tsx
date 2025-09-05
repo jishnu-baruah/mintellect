@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
 import { WalletDisconnectBrowserNotification } from "@/components/ui/browser-notification"
+import { BetaBadge } from "@/components/ui/beta-badge"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -56,8 +57,9 @@ export function Navbar() {
                 <span className="text-white font-bold text-sm">M</span>
               </div>
             </div>
-            <div className="ml-3">
+            <div className="ml-3 flex items-center space-x-2">
               <h1 className="text-white font-semibold text-lg">Mintellect</h1>
+              <BetaBadge size="sm" />
             </div>
           </div>
 

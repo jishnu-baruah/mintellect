@@ -12,6 +12,7 @@ import React from "react";
 import { useRouter } from "next/navigation"
 import { useWallet } from "@/hooks/useWallet"
 import { WalletDisconnectBrowserNotification } from "@/components/ui/browser-notification"
+import { BetaBadge } from "@/components/ui/beta-badge"
 
 // Minimal portal-based tooltip for sidebar
 function SidebarTooltip({ children, label }: { children: React.ReactNode, label: string }) {
@@ -239,21 +240,39 @@ export function DashboardSidebar({ className }: { className?: string }) {
         )}
       >
         {/* Logo and Title (row when expanded, centered when collapsed) */}
-        <div className="flex flex-row items-center mb-8 min-w-0 h-20 w-full overflow-hidden">
+        <div className={cn(
+          "mb-8 min-w-0 w-full overflow-hidden",
+          collapsedFinal ? "flex flex-col items-center h-24" : "flex flex-row items-center h-20"
+        )}>
           <div className="flex items-center justify-center w-20 h-20 flex-shrink-0 ml-0">
             <AnimatedLogo />
           </div>
-          <span
+          
+          {/* Expanded state: Title and badge in a row */}
+          <div
             className={cn(
-              "text-2xl font-bold text-white tracking-tight flex items-center transition-all duration-300 whitespace-nowrap",
+              "flex items-center space-x-2 transition-all duration-300 whitespace-nowrap",
               collapsedFinal
                 ? "opacity-0 pointer-events-none select-none"
                 : "opacity-100 ml-1",
             )}
             style={{ marginTop: '2px' }}
           >
-            Mintellect
-          </span>
+            <span className="text-2xl font-bold text-white tracking-tight">Mintellect</span>
+            <BetaBadge size="sm" />
+          </div>
+          
+          {/* Collapsed state: Beta badge below logo */}
+          <div
+            className={cn(
+              "flex justify-center transition-all duration-300",
+              collapsedFinal
+                ? "opacity-100 mt-1"
+                : "opacity-0 pointer-events-none select-none"
+            )}
+          >
+            <BetaBadge size="sm" />
+          </div>
         </div>
         {/* Navigation - scrollable, but bottom section is outside */}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1">

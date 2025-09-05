@@ -157,7 +157,7 @@ export function FileUpload({
   return (
     <div className="w-full">
       <GlassCard className="p-6">
-        <h2 className="text-xl font-bold mb-6">Upload LaTeX Files</h2>
+        <h2 className="text-xl font-bold mb-6">Upload .docx Files</h2>
 
         <div
           className={cn(
@@ -177,7 +177,7 @@ export function FileUpload({
             >
               <FileArchive className="h-10 w-10 md:h-12 md:w-12 text-mintellect-primary" />
             </motion.div>
-            <h3 className="text-lg font-semibold mb-2">{isDragging ? "Drop files here" : "Drag & Drop LaTeX .zip"}</h3>
+            <h3 className="text-lg font-semibold mb-2">{isDragging ? "Drop files here" : "Drag & Drop .docx files"}</h3>
             <p className="text-gray-400 mb-4">
               or{" "}
               <button className="text-mintellect-primary hover:underline" onClick={openFileDialog}>

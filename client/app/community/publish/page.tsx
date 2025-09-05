@@ -243,14 +243,14 @@ More content..."
               </div>
 
               <div className="mb-6">
-                <label className="font-medium mb-2 block">Upload LaTeX Files (.zip)</label>
+                <label className="font-medium mb-2 block">Upload .docx Files</label>
                 <div className="border-2 border-dashed border-gray-700 rounded-lg p-8 hover:border-gray-500 transition-colors">
                   <div className="flex flex-col items-center justify-center text-center">
                     <Upload className="h-12 w-12 text-gray-500 mb-4" />
                     <p className="text-gray-400 mb-2">
-                      Drag and drop your LaTeX .zip archive here, or click to select file
+                      Drag and drop your .docx files here, or click to select file
                     </p>
-                    <p className="text-xs text-gray-500">Upload your LaTeX files as a .zip archive (Max 50MB)</p>
+                    <p className="text-xs text-gray-500">Upload your .docx files (Max 50MB)</p>
                     <button
                       type="button"
                       className="mt-4 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"

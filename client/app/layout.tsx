@@ -14,7 +14,7 @@ import { PerformanceMonitor } from "@/components/ui/performance-monitor"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Mintellect - AI-Powered Academic Integrity Platform",
+  title: "Mintellect (Beta) - AI-Powered Academic Integrity Platform",
   description: "Verify, improve, and certify your academic work with Mintellect's AI-powered platform.",
    
 }
@@ -31,7 +31,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/images/Mintellect_logo.png" type="image/png" />
-        <title>Mintellect - AI-Powered Academic Integrity Platform</title>
+        <title>Mintellect (Beta) - AI-Powered Academic Integrity Platform</title>
         <meta name="description" content="Verify, improve, and certify your academic work with Mintellect's AI-powered platform." />
         <meta property="og:title" content="Mintellect - AI-Powered Academic Integrity Platform" />
         <meta property="og:description" content="Verify, improve, and certify your academic work with Mintellect's AI-powered platform." />
