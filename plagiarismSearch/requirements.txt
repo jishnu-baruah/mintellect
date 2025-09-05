@@ -2,4 +2,9 @@ fastapi
 uvicorn
 httpx
 python-dotenv
-Jinja2 
+Jinja2
+weasyprint
+python-multipart
+pydantic
+typing-extensions
+psutil 
