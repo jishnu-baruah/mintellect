@@ -4,14 +4,6 @@ import AWS from 'aws-sdk';
 import path from 'path';
 import fs from 'fs';
 
-// Configure Puppeteer for Render deployment
-if (process.env.NODE_ENV === 'production') {
-  process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer';
-  process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'false';
-  // Set the executable path directly
-  process.env.PUPPETEER_EXECUTABLE_PATH = '/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.157/chrome-linux64/chrome';
-}
-
 const router = express.Router();
 
 // Handle preflight requests for PDF endpoints
@@ -143,14 +135,10 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
         PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH
       });
       
-      // Try to find Chrome in common locations (prioritize Puppeteer's bundled Chrome)
+      // Try to find Chrome in common locations
       const possibleChromePaths = [
-        // Puppeteer's bundled Chrome paths (specific version from build log)
-        '/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.157/chrome-linux64/chrome',
-        // Environment variables
         process.env.CHROME_BIN,
         process.env.PUPPETEER_EXECUTABLE_PATH,
-        // System Chrome paths
         '/usr/bin/google-chrome',
         '/usr/bin/chromium-browser',
         '/usr/bin/chromium',
@@ -165,125 +153,37 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
         try {
           const fs = await import('fs');
           if (fs.existsSync(path)) {
-            console.log('Chrome file exists at:', path);
-            // Check if it's executable
-            try {
-              fs.accessSync(path, fs.constants.F_OK | fs.constants.R_OK | fs.constants.X_OK);
-              executablePath = path;
-              console.log('Found executable Chrome at:', executablePath);
-              break;
-            } catch (accessError) {
-              console.log('Chrome found but not executable, attempting to fix permissions:', path);
-              try {
-                fs.chmodSync(path, '755');
-                executablePath = path;
-                console.log('Made Chrome executable and using:', executablePath);
-                break;
-              } catch (chmodError) {
-                console.log('Could not make Chrome executable:', chmodError.message);
-              }
-            }
+            executablePath = path;
+            console.log('Found Chrome at:', executablePath);
+            break;
           }
         } catch (e) {
-          console.log('Could not check path:', path, e.message);
+          console.log('Could not check path:', path);
         }
       }
       
-      // If no specific path found, try to find Puppeteer's Chrome dynamically
-      if (!executablePath) {
-        try {
-          const fs = await import('fs');
-          const puppeteerCacheDir = '/opt/render/.cache/puppeteer/chrome';
-          if (fs.existsSync(puppeteerCacheDir)) {
-            const chromeDirs = fs.readdirSync(puppeteerCacheDir);
-            for (const dir of chromeDirs) {
-              // Try different possible Chrome paths
-              const possiblePaths = [
-                `${puppeteerCacheDir}/${dir}/chrome-linux64/chrome`,
-                `${puppeteerCacheDir}/${dir}/chrome-linux/chrome`,
-                `${puppeteerCacheDir}/${dir}/chrome`
-              ];
-              
-              for (const chromePath of possiblePaths) {
-                if (fs.existsSync(chromePath)) {
-                  // Check if the file is executable
-                  try {
-                    fs.accessSync(chromePath, fs.constants.F_OK | fs.constants.R_OK | fs.constants.X_OK);
-                    executablePath = chromePath;
-                    console.log('Found executable Puppeteer Chrome at:', executablePath);
-                    break;
-                  } catch (accessError) {
-                    console.log('Chrome found but not executable:', chromePath);
-                    // Make it executable
-                    try {
-                      fs.chmodSync(chromePath, '755');
-                      executablePath = chromePath;
-                      console.log('Made Chrome executable and using:', executablePath);
-                      break;
-                    } catch (chmodError) {
-                      console.log('Could not make Chrome executable:', chmodError.message);
-                    }
-                  }
-                }
-              }
-              if (executablePath) break;
-            }
-          }
-        } catch (e) {
-          console.log('Could not search Puppeteer cache directory:', e.message);
-        }
-      }
-      
-    // Configure launch options for Render deployment
-    const launchOptions = {
+    const browser = await puppeteer.launch({
       headless: 'new',
-      args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-        '--disable-extensions',
-        '--disable-plugins',
-        '--disable-images',
-        '--disable-javascript',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-field-trial-config',
-        '--disable-ipc-flooding-protection',
-        '--single-process',
-        '--no-zygote'
-      ]
-    };
-    
-    // Set executablePath if we found one, otherwise try the known path
-    if (executablePath) {
-      launchOptions.executablePath = executablePath;
-      console.log('Using Chrome executable:', executablePath);
-    } else {
-      // Try the known Chrome path from the build log
-      const knownChromePath = '/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.157/chrome-linux64/chrome';
-      try {
-        const fs = await import('fs');
-        if (fs.existsSync(knownChromePath)) {
-          console.log('Using known Chrome path:', knownChromePath);
-          launchOptions.executablePath = knownChromePath;
-        } else {
-          console.log('Known Chrome path not found, using Puppeteer default');
-          // Set the cache directory for Puppeteer
-          process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer';
-        }
-      } catch (e) {
-        console.log('Error checking known Chrome path:', e.message);
-        process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer';
-      }
-    }
-    
-    console.log('Launching Puppeteer with options:', JSON.stringify(launchOptions, null, 2));
-    const browser = await puppeteer.launch(launchOptions);
+        executablePath: executablePath,
+        args: [
+          '--no-sandbox', 
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--no-first-run',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-images',
+          '--disable-javascript',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-field-trial-config',
+          '--disable-ipc-flooding-protection'
+        ]
+    });
     
     const page = await browser.newPage();
       
@@ -383,23 +283,27 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
       } catch (alternativeError) {
         console.error('Alternative PDF generation failed:', alternativeError);
         
-        // Final fallback: Return enhanced HTML content that can be easily converted to PDF
-        console.log('Returning HTML fallback due to Chrome unavailability');
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Content-Disposition', `inline; filename="${documentName}_report.html"`);
-        res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-        
-        // Add a note about PDF conversion
-        const htmlWithNote = htmlContent.replace(
-          '</body>',
-          '<div style="background: #f0f8ff; border: 1px solid #4a90e2; padding: 15px; margin: 20px 0; border-radius: 5px;"><p style="margin: 0; color: #2c5aa0;"><strong>Note:</strong> This is an HTML version of the report. To convert to PDF, use your browser\'s "Print to PDF" function or save as PDF.</p></div></body>'
-        );
+                 // Final fallback: Return enhanced HTML content that can be easily converted to PDF
+         res.setHeader('Content-Type', 'text/html; charset=utf-8');
+         res.setHeader('Content-Disposition', `inline; filename="${documentName}_report.html"`);
+         res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
          
-        // Use the HTML with the note
-        res.send(htmlWithNote);
-        return;
+         // Extract CSS and body content from the generated HTML
+         const cssMatch = htmlContent.match(/<style>([\s\S]*)<\/style>/i);
+         const cssContent = cssMatch ? cssMatch[1] : '';
+         const bodyContentMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+         const bodyContent = bodyContentMatch ? bodyContentMatch[1] : htmlContent;
+         
+         const fallbackHtml = `
+           <!DOCTYPE html>
+           <html>
+           <head>
+             <title>Plagiarism Report - ${documentName}</title>
+             <meta charset="UTF-8">
+             <style>
+               ${cssContent}
                
                @media print {
                  body { margin: 0; padding: 20px; }
@@ -492,7 +396,9 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
              </script>
            </body>
            </html>
-         return;
+         `;
+         
+         return res.send(fallbackHtml);
       }
     }
     
