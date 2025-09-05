@@ -41,6 +41,32 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Health check endpoint with HTTP authentication (placed early to avoid middleware interference)
+app.get('/health', (req, res) => {
+  const auth = req.headers.authorization;
+  
+  if (!auth || !auth.startsWith('Basic ')) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+  
+  const credentials = Buffer.from(auth.slice(6), 'base64').toString();
+  const [username, password] = credentials.split(':');
+  
+  if (username !== 'cronjob@mintellect' || password !== 'mintellect2025') {
+    res.status(401).json({ error: 'Invalid credentials' });
+    return;
+  }
+  
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    version: '1.0.0'
+  });
+});
+
 // Special middleware for large file uploads (trust score analysis)
 app.use('/api/trust-score', express.json({ limit: '100mb' }));
 app.use('/api/files', express.json({ limit: '100mb' }));
@@ -72,32 +98,6 @@ app.use('/api/files', filesRouter);
 app.use('/api/workflow', workflowArchiveRouter);
 app.use('/api/pdf', pdfRouter);
 app.use(requireProfileCompletion);
-
-// Health check endpoint with HTTP authentication
-app.get('/health', (req, res) => {
-  const auth = req.headers.authorization;
-  
-  if (!auth || !auth.startsWith('Basic ')) {
-    res.status(401).json({ error: 'Authentication required' });
-    return;
-  }
-  
-  const credentials = Buffer.from(auth.slice(6), 'base64').toString();
-  const [username, password] = credentials.split(':');
-  
-  if (username !== 'cronjob@mintellect' || password !== 'mintellect2025') {
-    res.status(401).json({ error: 'Invalid credentials' });
-    return;
-  }
-  
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    version: '1.0.0'
-  });
-});
 
 app.get('/', (req, res) => {
   res.send('API is running...');
