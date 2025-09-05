@@ -12,7 +12,7 @@
     "lint": "next lint",
     "build": "next build",
     "postinstall": "npx puppeteer browsers install chrome || echo 'Chrome installation failed, will use alternative method'",
-    "render-postinstall": "apt-get update && apt-get install -y wget gnupg && wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' > /etc/apt/sources.list.d/google-chrome.list && apt-get update && apt-get install -y google-chrome-stable && npx puppeteer browsers install chrome",
+    "render-postinstall": "npx puppeteer browsers install chrome",
     "install-chrome": "npx puppeteer browsers install chrome",
     "setup": "npm run install-chrome",
     "install-chrome-manual": "node install-chrome.js",

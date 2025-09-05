@@ -135,16 +135,19 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
         PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH
       });
       
-      // Try to find Chrome in common locations
+      // Try to find Chrome in common locations (prioritize Puppeteer's bundled Chrome)
       const possibleChromePaths = [
+        // Puppeteer's bundled Chrome paths (specific version from build log)
+        '/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.157/chrome-linux64/chrome',
+        // Environment variables
         process.env.CHROME_BIN,
         process.env.PUPPETEER_EXECUTABLE_PATH,
+        // System Chrome paths
         '/usr/bin/google-chrome',
         '/usr/bin/chromium-browser',
         '/usr/bin/chromium',
         '/opt/google/chrome/chrome',
-        '/usr/bin/google-chrome-stable',
-        '/opt/render/project/.chromium/chrome-linux/chrome'
+        '/usr/bin/google-chrome-stable'
       ].filter(Boolean);
       
       console.log('Possible Chrome paths:', possibleChromePaths);
@@ -160,6 +163,27 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
           }
         } catch (e) {
           console.log('Could not check path:', path);
+        }
+      }
+      
+      // If no specific path found, try to find Puppeteer's Chrome dynamically
+      if (!executablePath) {
+        try {
+          const fs = await import('fs');
+          const puppeteerCacheDir = '/opt/render/.cache/puppeteer/chrome';
+          if (fs.existsSync(puppeteerCacheDir)) {
+            const chromeDirs = fs.readdirSync(puppeteerCacheDir);
+            for (const dir of chromeDirs) {
+              const chromePath = `${puppeteerCacheDir}/${dir}/chrome-linux64/chrome`;
+              if (fs.existsSync(chromePath)) {
+                executablePath = chromePath;
+                console.log('Found Puppeteer Chrome dynamically at:', executablePath);
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.log('Could not search Puppeteer cache directory:', e.message);
         }
       }
       
