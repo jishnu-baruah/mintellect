@@ -6,6 +6,9 @@ import fs from 'fs';
 
 const router = express.Router();
 
+// Skip Puppeteer if SKIP_PUPPETEER is set to true
+const SKIP_PUPPETEER = process.env.SKIP_PUPPETEER === 'true';
+
 // Handle preflight requests for PDF endpoints
 router.options('*', (req, res) => {
   res.header('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
@@ -124,6 +127,169 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
     const htmlContent = generatePlagiarismReportHTML(plagiarismData, documentName, sources);
     
     console.log('HTML content generated, length:', htmlContent.length);
+    
+    // Skip Puppeteer if flag is set
+    if (SKIP_PUPPETEER) {
+      console.log('Skipping Puppeteer - returning HTML URL for manual PDF conversion');
+      
+      // Return HTML content URL instead of PDF
+      const timestamp = Date.now();
+      const sanitizedName = documentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const filename = `${sanitizedName}_plagiarism_report_${timestamp}.html`;
+      
+      // For now, return the HTML content directly
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+      res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      
+      return res.send(htmlContent);
+    }
+      
+      // Return enhanced HTML content that can be easily converted to PDF
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Disposition', `inline; filename="${documentName}_report.html"`);
+      res.setHeader('Access-Control-Allow-Origin', 'https://app.mintellect.xyz');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      
+      // Extract CSS and body content from the generated HTML
+      const cssMatch = htmlContent.match(/<style>([\s\S]*)<\/style>/i);
+      const cssContent = cssMatch ? cssMatch[1] : '';
+      const bodyContentMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+      const bodyContent = bodyContentMatch ? bodyContentMatch[1] : htmlContent;
+      
+      const fallbackHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Plagiarism Report - ${documentName}</title>
+          <meta charset="UTF-8">
+          <style>
+            ${cssContent}
+            
+            @media print {
+              body { margin: 0; padding: 20px; }
+              .no-print { display: none; }
+              .page-break { page-break-before: always; }
+            }
+            
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 20px; 
+              margin: 0;
+              background: white;
+              color: #333;
+            }
+            
+            .instructions {
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 20px;
+              border-left: 4px solid #6366f1;
+              text-align: center;
+            }
+            
+            .instructions h3 {
+              margin-top: 0;
+              color: #6366f1;
+              font-size: 18px;
+            }
+            
+            .instructions ol {
+              text-align: left;
+              max-width: 500px;
+              margin: 0 auto;
+            }
+            
+            .instructions li {
+              margin-bottom: 8px;
+              color: #555;
+            }
+            
+            .print-button {
+              background: #6366f1;
+              color: white;
+              border: none;
+              padding: 12px 24px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 16px;
+              margin: 10px;
+              transition: background-color 0.2s;
+            }
+            
+            .print-button:hover {
+              background: #4f46e5;
+            }
+            
+            .print-button:active {
+              background: #3730a3;
+            }
+            
+            .keyboard-shortcut {
+              background: #e0e7ff;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-family: monospace;
+              font-size: 14px;
+              color: #3730a3;
+              font-weight: bold;
+            }
+            
+            .note {
+              background: #fef3c7;
+              border: 1px solid #f59e0b;
+              padding: 12px;
+              border-radius: 6px;
+              margin: 15px 0;
+              color: #92400e;
+            }
+            
+            .note strong {
+              color: #78350f;
+            }
+            
+            @media print {
+              .print-button, .instructions {
+                display: none;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="instructions">
+            <h3>📄 How to Save as PDF</h3>
+            <ol>
+              <li><strong>Press Ctrl+P (Windows) or Cmd+P (Mac)</strong></li>
+              <li>Select "Save as PDF" as the destination</li>
+              <li>Choose your preferred settings</li>
+              <li>Click "Save" to download the PDF</li>
+            </ol>
+            <button class="print-button" onclick="window.print()">🖨️ Print/Save as PDF</button>
+            <button class="print-button" onclick="window.close()">❌ Close</button>
+          </div>
+          
+          <div class="report-content">
+            ${bodyContent}
+          </div>
+          
+          <script>
+            // Auto-print dialog on load (optional)
+            // window.onload = function() {
+            //   setTimeout(() => {
+            //     window.print();
+            //   }, 1000);
+            // }
+          </script>
+        </body>
+        </html>
+      `;
+      
+      return res.send(fallbackHtml);
+    }
     console.log('HTML content preview:', htmlContent.substring(0, 500));
     
     let pdf;
