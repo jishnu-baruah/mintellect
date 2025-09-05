@@ -38,7 +38,7 @@ import PageLoader from "@/components/page-loader"
 const WORKFLOW_STEPS = [
   {
     title: "Upload",
-    description: "Upload LaTeX, PDF, or Word documents.",
+    description: "Upload .docx documents.",
     icon: FileCheck,
   },
   {
