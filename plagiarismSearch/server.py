@@ -37,6 +37,40 @@ templates = Jinja2Templates(directory="templates")
 
 headers = lambda: {"Authorization": API_KEY} if API_KEY else {}
 
+@app.get("/health")
+async def health_check(request: Request):
+    from fastapi import HTTPException
+    import base64
+    
+    auth = request.headers.get("authorization")
+    
+    if not auth or not auth.startswith("Basic "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    try:
+        credentials = base64.b64decode(auth[6:]).decode()
+        username, password = credentials.split(":", 1)
+        
+        if username != "cronjob@mintellect" or password != "mintellect2025":
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+    except:
+        raise HTTPException(status_code=401, detail="Invalid authentication format")
+    
+    import psutil
+    import time
+    
+    return {
+        "status": "healthy",
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "uptime": time.time() - psutil.boot_time(),
+        "memory": {
+            "total": psutil.virtual_memory().total,
+            "available": psutil.virtual_memory().available,
+            "percent": psutil.virtual_memory().percent
+        },
+        "version": "1.0.0"
+    }
+
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})

@@ -7,11 +7,13 @@ export const BackgroundRippleEffect = ({
   cols = 27,
   cellSize = 56,
   className,
+  interactive = true,
 }: {
   rows?: number;
   cols?: number;
   cellSize?: number;
   className?: string;
+  interactive?: boolean;
 }) => {
   const [clickedCell, setClickedCell] = useState<{
     row: number;
@@ -24,7 +26,7 @@ export const BackgroundRippleEffect = ({
     <div
       ref={ref}
       className={cn(
-        "absolute inset-0 h-full w-full z-20",
+        "absolute inset-0 h-full w-full z-0 pointer-events-auto",
         className
       )}
     >
@@ -39,11 +41,11 @@ export const BackgroundRippleEffect = ({
           borderColor="rgba(59, 130, 246, 0.15)"
           fillColor="rgba(59, 130, 246, 0.1)"
           clickedCell={clickedCell}
-          onCellClick={(row, col) => {
+          onCellClick={interactive ? (row, col) => {
             setClickedCell({ row, col });
             setRippleKey((k) => k + 1);
-          }}
-          interactive
+          } : undefined}
+          interactive={interactive}
         />
       </div>
     </div>

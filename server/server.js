@@ -15,6 +15,7 @@ const startServer = () => {
     console.log(`Server running on port ${PORT}`);
     console.log('API endpoints available:');
     console.log('- GET  /');
+    console.log('- GET  /health (with HTTP Basic Auth)');
     console.log('- POST /api/files/upload');
     console.log('- GET  /api/files');
     console.log('- GET  /api/files/:fileId');

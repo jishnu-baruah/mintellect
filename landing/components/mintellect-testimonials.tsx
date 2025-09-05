@@ -4,38 +4,24 @@ export default function MintellectTestimonials() {
   const testimonials = [
     {
       quote:
-        "Mintellect's peer review system has revolutionized how we verify research. The OCI badges provide clear recognition for quality work, and the decentralized approach ensures transparency.",
-      name: "Dr. Sarah Chen",
-      designation: "Research Director at Stanford University",
-      src: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=3560&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "Mintellect has a lot of potential to grow, as it operates in the niche yet essential and ever-growing domain of Blockchain and AI research. In today's world, where data is abundant, its core purpose is to empower people to conduct meaningful research. Once that happens, Mintellect will truly shine. Their focus on self-research, community support, and real incentives is just the cherry on top.",
+      name: "Shibam Mandal",
+      designation: "Research Undergrad at Sister Nivedita University",
+      src: "https://ik.imagekit.io/0whwkbkhd/Generated%20Image%20September%2005,%202025%20-%206_40PM.jpeg?updatedAt=1757077841678",
     },
     {
       quote:
-        "The plagiarism detection and citation verification features are game-changers. Our research integrity has improved significantly since implementing Mintellect's verification system.",
-      name: "Prof. Michael Rodriguez",
-      designation: "Head of Research at MIT",
-      src: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "Mintellect is a truly impactful project with immense potential. In the future, I see its community element growing stronger and creating a collaborative space for knowledge exchange. Most importantly, it will inspire undergraduate researchers who may lack opportunities or motivation to pursue meaningful research. By bringing in fresh talent and fostering curiosity, Mintellect can make research a top priority for students alongside industry opportunities.",
+      name: "Soumedhik Bharati",
+      designation: "R&D Developer and ML Engineer at Strategic Intelligence Firm | Research Fellow at IIT Kharagpur",
+      src: "https://ik.imagekit.io/0whwkbkhd/Generated%20Image%20September%2005,%202025%20-%207_04PM.jpeg?updatedAt=1757079424023",
     },
     {
       quote:
-        "Mintellect's workflow automation has streamlined our research process. The AI systems handle routine verification tasks, allowing our team to focus on breakthrough discoveries.",
-      name: "Dr. Emily Watson",
-      designation: "Chief Scientist at DeepMind",
-      src: "https://images.unsplash.com/photo-1623582854588-d60de57fa33f?q=80&w=3540&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    },
-    {
-      quote:
-        "The decentralized peer review model ensures unbiased evaluation. As a reviewer, I appreciate the fair compensation through OCI tokens and the transparent review process.",
-      name: "Dr. James Kim",
-      designation: "Senior Researcher at Google AI",
-      src: "https://images.unsplash.com/photo-1636041293178-808a6762ab39?q=80&w=3464&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    },
-    {
-      quote:
-        "Mintellect has created a trusted ecosystem where researchers can confidently share their work. The verification standards are rigorous yet fair, building genuine trust in academic publishing.",
-      name: "Dr. Lisa Thompson",
-      designation: "Editor-in-Chief at Nature Research",
-      src: "https://images.unsplash.com/photo-1624561172888-ac93c696e10c?q=80&w=2592&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "Mintellect is creating a trusted ecosystem where researchers can confidently share their work. The verification standards are rigorous yet fair, building genuine trust in academic publishing.",
+      name: "Abhirup Banerjee",
+      designation: "Founder at Axicov | Solana Researcher",
+      src: "https://ik.imagekit.io/0whwkbkhd/WhatsApp%20Image%202025-08-10%20at%2017.59.20_f81710db.jpg?updatedAt=1757083050528",
     },
   ];
   return <AnimatedTestimonials testimonials={testimonials} autoplay={true} />;
