@@ -4,6 +4,12 @@ import AWS from 'aws-sdk';
 import path from 'path';
 import fs from 'fs';
 
+// Configure Puppeteer for Render deployment
+if (process.env.NODE_ENV === 'production') {
+  process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer';
+  process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'false';
+}
+
 const router = express.Router();
 
 // Handle preflight requests for PDF endpoints
@@ -174,12 +180,36 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
           if (fs.existsSync(puppeteerCacheDir)) {
             const chromeDirs = fs.readdirSync(puppeteerCacheDir);
             for (const dir of chromeDirs) {
-              const chromePath = `${puppeteerCacheDir}/${dir}/chrome-linux64/chrome`;
-              if (fs.existsSync(chromePath)) {
-                executablePath = chromePath;
-                console.log('Found Puppeteer Chrome dynamically at:', executablePath);
-                break;
+              // Try different possible Chrome paths
+              const possiblePaths = [
+                `${puppeteerCacheDir}/${dir}/chrome-linux64/chrome`,
+                `${puppeteerCacheDir}/${dir}/chrome-linux/chrome`,
+                `${puppeteerCacheDir}/${dir}/chrome`
+              ];
+              
+              for (const chromePath of possiblePaths) {
+                if (fs.existsSync(chromePath)) {
+                  // Check if the file is executable
+                  try {
+                    fs.accessSync(chromePath, fs.constants.F_OK | fs.constants.R_OK | fs.constants.X_OK);
+                    executablePath = chromePath;
+                    console.log('Found executable Puppeteer Chrome at:', executablePath);
+                    break;
+                  } catch (accessError) {
+                    console.log('Chrome found but not executable:', chromePath);
+                    // Make it executable
+                    try {
+                      fs.chmodSync(chromePath, '755');
+                      executablePath = chromePath;
+                      console.log('Made Chrome executable and using:', executablePath);
+                      break;
+                    } catch (chmodError) {
+                      console.log('Could not make Chrome executable:', chmodError.message);
+                    }
+                  }
+                }
               }
+              if (executablePath) break;
             }
           }
         } catch (e) {
@@ -212,11 +242,18 @@ router.post('/generate-plagiarism-report-direct', async (req, res) => {
       ]
     };
     
-    // Only set executablePath if we found one
+    // Set executablePath if we found one, otherwise let Puppeteer use its default
     if (executablePath) {
       launchOptions.executablePath = executablePath;
+      console.log('Using Chrome executable:', executablePath);
+    } else {
+      console.log('No Chrome executable found, using Puppeteer default');
+      // Set the cache directory for Puppeteer
+      process.env.PUPPETEER_CACHE_DIR = '/opt/render/.cache/puppeteer';
+      // Don't set executablePath, let Puppeteer find it automatically
     }
     
+    console.log('Launching Puppeteer with options:', JSON.stringify(launchOptions, null, 2));
     const browser = await puppeteer.launch(launchOptions);
     
     const page = await browser.newPage();

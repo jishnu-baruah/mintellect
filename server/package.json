@@ -12,7 +12,7 @@
     "lint": "next lint",
     "build": "next build",
     "postinstall": "npx puppeteer browsers install chrome || echo 'Chrome installation failed, will use alternative method'",
-    "render-postinstall": "npx puppeteer browsers install chrome",
+    "render-postinstall": "npx puppeteer browsers install chrome && find /opt/render/.cache/puppeteer -name 'chrome' -type f -exec chmod +x {} \\;",
     "install-chrome": "npx puppeteer browsers install chrome",
     "setup": "npm run install-chrome",
     "install-chrome-manual": "node install-chrome.js",

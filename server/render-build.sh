@@ -11,4 +11,8 @@ npm install --force
 echo "Installing Puppeteer Chrome..."
 npx puppeteer browsers install chrome
 
+# Make Chrome executable
+echo "Making Chrome executable..."
+find /opt/render/.cache/puppeteer -name 'chrome' -type f -exec chmod +x {} \;
+
 echo "Build process completed!"
