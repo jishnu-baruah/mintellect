@@ -31,9 +31,12 @@ import { Navbar } from "@/components/navbar"
 import Link from "next/link"
 import { useWallet } from "@/hooks/useWallet"
 // import { useAccount, useContractRead } from 'wagmi';
-import contractABI from "@/lib/MintellectNFT_ABI.json"
+import contractArtifact from "@/lib/MintellectNFT_ABI.json"
 
-const CONTRACT_ADDRESS = "0xadB0b68EE8c15b9F9E99ECf9A36a5BF17AC06864"
+// Extract the ABI from the artifact
+const contractABI = contractArtifact.abi;
+
+const CONTRACT_ADDRESS = "0x8df311Efb8160a4Cde6f13C47D0E4c21F949CbdD"
 
 // Paper card component
 const PaperCard = ({ paper, onPurchase, isExpanded, onToggleExpand }: {

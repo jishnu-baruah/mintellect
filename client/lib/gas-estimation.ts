@@ -24,6 +24,7 @@ export class GasEstimator {
 
   /**
    * Estimate gas for minting an NFT
+   * Since mintNFT has onlyOwner modifier, we use a different approach
    */
   static async estimateMintGas(
     contract: ethers.Contract,
@@ -32,10 +33,11 @@ export class GasEstimator {
     options: GasEstimateOptions = {}
   ): Promise<GasEstimate> {
     try {
-      // Estimate gas limit
-      const gasLimit = await contract.mintNFT.estimateGas(to, tokenURI);
+      // Since mintNFT is onlyOwner, we can't estimate it directly
+      // Instead, we'll use a known gas limit for ERC721 minting
+      const baseGasLimit = 300000n; // Known gas limit for ERC721 minting
       const gasMultiplier = options.gasMultiplier || this.DEFAULT_GAS_MULTIPLIER;
-      const adjustedGasLimit = BigInt(Math.floor(Number(gasLimit) * gasMultiplier));
+      const adjustedGasLimit = BigInt(Math.floor(Number(baseGasLimit) * gasMultiplier));
 
       // Get current gas price
       const feeData = await contract.runner?.provider?.getFeeData();

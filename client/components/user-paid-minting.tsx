@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { GlassCard } from "./ui/glass-card"
 import { RippleButton } from "./ui/ripple-button"
-import { FileText, Check, Clock, Share2, Download, ExternalLink, Copy, Shield, AlertTriangle, Zap } from "lucide-react"
+import { FileText, Check, Clock, Share2, Download, ExternalLink, Copy, Shield, AlertTriangle, Zap, Wallet } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { uploadMetadata } from "../lib/utils";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useWalletClient } from 'wagmi';
@@ -13,9 +13,8 @@ import contractArtifact from "../lib/MintellectNFT_ABI.json";
 
 // Extract the ABI from the artifact
 const contractABI = contractArtifact.abi;
-import { GasEstimator, GasEstimate } from "../lib/gas-estimation";
 
-interface NFTMintingProps {
+interface UserPaidMintingProps {
   documentId: string
   documentName: string
   trustScore: number
@@ -24,7 +23,7 @@ interface NFTMintingProps {
 
 type MintingStatus = "preparing" | "estimating" | "confirming-gas" | "minting" | "confirming" | "complete" | "failed"
 
-export function NFTMinting({ documentId, documentName, trustScore, onComplete }: NFTMintingProps) {
+export function UserPaidMinting({ documentId, documentName, trustScore, onComplete }: UserPaidMintingProps) {
   const router = useRouter()
   const [status, setStatus] = useState<MintingStatus>("preparing")
   const [progress, setProgress] = useState(0)
@@ -38,14 +37,12 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
   const [error, setError] = useState<string | null>(null)
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
-  const CONTRACT_ADDRESS = "0x8df311Efb8160a4Cde6f13C47D0E4c21F949CbdD"; // Educhain contract
+  const CONTRACT_ADDRESS = "0xadB0b68EE8c15b9F9E99ECf9A36a5BF17AC06864";
   const [ipfsUrl, setIpfsUrl] = useState<string | null>(null);
-  const [mintArgs, setMintArgs] = useState<[string, string] | null>(null);
-  const [gasEstimate, setGasEstimate] = useState<GasEstimate | null>(null);
+  const [gasEstimate, setGasEstimate] = useState<any>(null);
   const [showGasConfirmation, setShowGasConfirmation] = useState(false);
-  const [walletType, setWalletType] = useState<string>('unknown');
 
-  // Contract write for public minting
+  // Contract write (updated for new wagmi version)
   const { writeContract, data: txData, isPending: isWriting, error: writeError } = useWriteContract();
 
   // Wait for transaction
@@ -57,21 +54,43 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
   useEffect(() => {
     if (txData && isTxSuccess) {
       // Extract token ID from transaction receipt
-      // For now, we'll use a placeholder - in a real implementation,
-      // you'd parse the transaction logs to get the actual token ID
-      const mockTokenId = `#${Math.floor(Math.random() * 1000000)}`;
+      const getTokenId = async () => {
+        try {
+          const provider = new ethers.BrowserProvider((window as any).ethereum);
+          const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider);
+          const totalSupply = await contract.totalSupply();
+          const tokenId = (Number(totalSupply) - 1).toString();
+          console.log("Minting complete - Total supply:", totalSupply, "Token ID:", tokenId);
+          
+          setNftData({
+            tokenId: tokenId,
+            transactionHash: txData,
+            blockchain: "EduChain Testnet",
+            ipfsUrl: ipfsUrl || "",
+            certificateUrl: ipfsUrl || ""
+          });
+          
+          setStatus("complete");
+          setProgress(100);
+          if (onComplete) onComplete();
+        } catch (error) {
+          console.error("Error getting token ID:", error);
+          // Fallback to mock token ID
+          const mockTokenId = `#${Math.floor(Math.random() * 1000000)}`;
+          setNftData({
+            tokenId: mockTokenId,
+            transactionHash: txData,
+            blockchain: "EduChain Testnet",
+            ipfsUrl: ipfsUrl || "",
+            certificateUrl: ipfsUrl || ""
+          });
+          setStatus("complete");
+          setProgress(100);
+          if (onComplete) onComplete();
+        }
+      };
       
-      setNftData({
-        tokenId: mockTokenId,
-        transactionHash: txData,
-        blockchain: "EduChain Testnet",
-        ipfsUrl: ipfsUrl || "",
-        certificateUrl: ipfsUrl || ""
-      });
-      
-      setStatus("complete");
-      setProgress(100);
-      if (onComplete) onComplete();
+      getTokenId();
     }
   }, [txData, isTxSuccess, onComplete, ipfsUrl]);
 
@@ -79,171 +98,86 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
   useEffect(() => {
     if (writeError) {
       console.error("Write contract error:", writeError);
-      
-      let errorMessage = "Contract interaction failed";
-      
-      // Parse specific error messages
-      if (writeError.message) {
-        if (writeError.message.includes("Max tokens per wallet")) {
-          errorMessage = "You have reached the maximum number of NFTs you can mint (5). Please try with a different wallet.";
-        } else if (writeError.message.includes("Insufficient payment")) {
-          errorMessage = "Insufficient payment. Please ensure you have enough EDU tokens (0.01 EDU + gas fees).";
-        } else if (writeError.message.includes("Public minting is disabled")) {
-          errorMessage = "Public minting is currently disabled. Please try again later.";
-        } else if (writeError.message.includes("Maximum supply reached")) {
-          errorMessage = "Maximum supply reached. No more NFTs can be minted.";
-        } else if (writeError.message.includes("execution reverted")) {
-          errorMessage = "Transaction failed. Please check your wallet balance and try again.";
-        } else {
-          errorMessage = writeError.message;
-        }
-      }
-      
-      setError(errorMessage);
+      setError(writeError.message || "Contract interaction failed");
       setStatus("failed");
     }
   }, [writeError]);
 
-  // Detect wallet type
-  useEffect(() => {
-    if (walletClient) {
-      setWalletType('connected');
-    }
-  }, [walletClient]);
-
-  // Estimate gas fees
+  // Estimate gas fees using API
   const estimateGasFees = async (ipfsUrl: string) => {
-    if (!address || !walletClient) throw new Error("Wallet not connected");
+    if (!address) throw new Error("Wallet not connected");
     
     setStatus("estimating");
     setProgress(20);
     
     try {
-      const provider = new ethers.BrowserProvider(walletClient);
-      
-      // Get optimized gas settings for the wallet type
-      const gasOptions = GasEstimator.getOptimizedGasSettings(walletType);
-      
-      // Since mintNFT is onlyOwner, we'll use a different approach
-      // We'll estimate gas for a typical ERC721 mint operation
-      const baseGasLimit = BigInt(300000); // Known gas limit for ERC721 minting
-      const gasMultiplier = gasOptions.gasMultiplier || 1.2;
-      const adjustedGasLimit = BigInt(Math.floor(Number(baseGasLimit) * gasMultiplier));
+      const response = await fetch('/api/minting/estimate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAddress: address,
+          tokenURI: ipfsUrl
+        })
+      });
 
-      // Get current gas price
-      const feeData = await provider.getFeeData();
-      if (!feeData) {
-        throw new Error('Unable to get fee data from provider');
+      if (!response.ok) {
+        throw new Error('Failed to estimate gas fees');
       }
 
-      // Handle EIP-1559 vs legacy gas pricing
-      let gasPrice: bigint;
-      let maxFeePerGas: bigint | undefined;
-      let maxPriorityFeePerGas: bigint | undefined;
-
-      if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-        // EIP-1559 (Type 2) transaction
-        const priorityFeeMultiplier = gasOptions.priorityFeeMultiplier || 1.1;
-        maxPriorityFeePerGas = BigInt(Math.floor(Number(feeData.maxPriorityFeePerGas) * priorityFeeMultiplier));
-        maxFeePerGas = (feeData.maxFeePerGas * BigInt(Math.floor(priorityFeeMultiplier * 100))) / BigInt(100);
-        gasPrice = maxFeePerGas;
-      } else if (feeData.gasPrice) {
-        // Legacy (Type 0) transaction
-        gasPrice = feeData.gasPrice;
-        if (gasOptions.maxGasPrice) {
-          gasPrice = gasPrice > gasOptions.maxGasPrice ? gasOptions.maxGasPrice : gasPrice;
-        }
-      } else {
-        throw new Error('Unable to determine gas price');
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Gas estimation failed');
       }
 
-      // Apply gas price limits
-      const maxGasPriceWei = ethers.parseUnits('50', 'gwei');
-      const minGasPriceWei = ethers.parseUnits('1', 'gwei');
-      
-      if (gasPrice > maxGasPriceWei) {
-        gasPrice = maxGasPriceWei;
-        if (maxFeePerGas) maxFeePerGas = maxGasPriceWei;
-      } else if (gasPrice < minGasPriceWei) {
-        gasPrice = minGasPriceWei;
-        if (maxFeePerGas) maxFeePerGas = minGasPriceWei;
-      }
-
-      // Calculate total cost
-      const totalCost = adjustedGasLimit * gasPrice;
-      const costInETH = ethers.formatEther(totalCost);
-      const costInEDU = costInETH;
-
-      const estimate: GasEstimate = {
-        gasLimit: adjustedGasLimit,
-        gasPrice,
-        maxFeePerGas,
-        maxPriorityFeePerGas,
-        totalCost,
-        costInETH,
-        costInEDU,
-      };
-      
-      setGasEstimate(estimate);
+      setGasEstimate(result);
       setProgress(40);
       
       // Always show gas confirmation for user-paid minting
       setShowGasConfirmation(true);
       setStatus("confirming-gas");
+      
     } catch (err: any) {
       console.error("Gas estimation error:", err);
-      // Use fallback estimate with correct gas limit
-      const fallbackEstimate = {
-        gasLimit: BigInt(20000000), // 20M gas limit
-        gasPrice: ethers.parseUnits('20', 'gwei'),
-        maxFeePerGas: undefined,
-        maxPriorityFeePerGas: undefined,
-        totalCost: BigInt(20000000) * ethers.parseUnits('20', 'gwei'),
-        costInETH: '0.4',
-        costInEDU: '0.4'
-      };
-      setGasEstimate(fallbackEstimate);
-      setShowGasConfirmation(true);
-      setStatus("confirming-gas");
+      setError(err.message || "Gas estimation failed");
+      setStatus("failed");
     }
   };
 
-  // Proceed with public minting after gas confirmation
-  const proceedWithMinting = async (ipfsUrl: string, estimate?: GasEstimate) => {
+  // Proceed with user-paid minting
+  const proceedWithMinting = async (ipfsUrl: string) => {
     if (!address || !walletClient) throw new Error("Wallet not connected");
-
+    
     setStatus("minting");
     setProgress(60);
-
+    
     try {
-      console.log("Public minting with args:", [ipfsUrl]);
+      console.log("User-paid minting with args:", [address, ipfsUrl]);
       console.log("Contract address:", CONTRACT_ADDRESS);
-
-      // Prepare transaction parameters for mintPublic
+      
+      // Prepare transaction parameters
       const txParams: any = {
         address: CONTRACT_ADDRESS,
         abi: contractABI,
-        functionName: 'mintPublic',
-        args: [ipfsUrl],
-        value: ethers.parseEther("0.01"), // Pay mint price (0.01 EDU)
+        functionName: 'mintNFT',
+        args: [address, ipfsUrl],
       };
       
-      // Always use a high gas limit - the contract requires at least 15M gas
-      txParams.gas = BigInt(20000000); // 20M gas limit (proven to work)
-      
-      // Add gas price parameters if estimate is available
-      if (estimate) {
-        if (estimate.maxFeePerGas && estimate.maxPriorityFeePerGas) {
+      // Add gas parameters if estimate is available
+      if (gasEstimate) {
+        txParams.gas = BigInt(gasEstimate.gasLimit);
+        
+        if (gasEstimate.maxFeePerGas && gasEstimate.maxPriorityFeePerGas) {
           // EIP-1559 transaction
-          txParams.maxFeePerGas = BigInt(estimate.maxFeePerGas);
-          txParams.maxPriorityFeePerGas = BigInt(estimate.maxPriorityFeePerGas);
+          txParams.maxFeePerGas = BigInt(gasEstimate.maxFeePerGas);
+          txParams.maxPriorityFeePerGas = BigInt(gasEstimate.maxPriorityFeePerGas);
         } else {
           // Legacy transaction
-          txParams.gasPrice = BigInt(estimate.gasPrice);
+          txParams.gasPrice = BigInt(gasEstimate.gasPrice);
         }
       }
-      
-      console.log("Calling mintPublic with params:", txParams);
       
       // Call writeContract - this will trigger wallet interaction
       writeContract(txParams);
@@ -290,17 +224,12 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
   const handleGasConfirmation = (confirmed: boolean) => {
     if (confirmed && gasEstimate && ipfsUrl) {
       setShowGasConfirmation(false);
-      proceedWithMinting(ipfsUrl, gasEstimate);
+      proceedWithMinting(ipfsUrl);
     } else {
       setStatus("preparing");
       setShowGasConfirmation(false);
     }
   };
-
-  const startMinting = () => {
-    setStatus("preparing")
-    setProgress(0)
-  }
 
   const retryMinting = () => {
     setError(null)
@@ -312,7 +241,6 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
     navigator.clipboard
       .writeText(text)
       .then(() => {
-        // Could add a toast notification here
         console.log("Copied to clipboard")
       })
       .catch((err) => {
@@ -327,17 +255,14 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
       {status === "preparing" && (
         <div className="text-center py-8">
           <div className="mb-6">
-            <Shield className="h-16 w-16 text-mintellect-primary mx-auto mb-4" />
+            <Wallet className="h-16 w-16 text-mintellect-primary mx-auto mb-4" />
             <h3 className="text-xl font-bold mb-2">Ready to Mint Your Certificate</h3>
             <p className="text-gray-300 mb-4">
               Your document has been reviewed and approved with a trust score of{" "}
               <span className="font-bold text-mintellect-primary">{trustScore}</span>.
             </p>
-            <p className="text-yellow-400 mb-6">
-              <strong>You will pay 0.01 EDU + gas fees</strong> to mint your document as an NFT on the blockchain.
-            </p>
             <p className="text-gray-400 mb-6">
-              Minting your document as an NFT will create a permanent, verifiable record of your work on the blockchain.
+              <strong>You will pay the gas fees</strong> to mint your document as an NFT on the blockchain.
             </p>
           </div>
 
@@ -353,7 +278,7 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
           </div>
 
           <RippleButton onClick={handleMint} className="mx-auto">
-            Mint NFT Certificate (Pay 0.01 EDU + Gas)
+            Mint NFT Certificate (Pay Gas Fees)
           </RippleButton>
         </div>
       )}
@@ -384,7 +309,7 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
 
             <h3 className="text-xl font-bold mb-2">Estimating Gas Fees</h3>
             <p className="text-gray-400">
-              Calculating optimal gas settings for your wallet...
+              Calculating gas costs for your wallet transaction...
             </p>
           </div>
         </div>
@@ -396,9 +321,9 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
             <div className="w-24 h-24 rounded-full bg-yellow-400 flex items-center justify-center mx-auto mb-6">
               <AlertTriangle className="h-12 w-12 text-black" />
             </div>
-            <h3 className="text-xl font-bold mb-2">Gas Fee Confirmation</h3>
+            <h3 className="text-xl font-bold mb-2">Confirm Gas Payment</h3>
             <p className="text-gray-400 mb-6">
-              Please review the estimated gas fees before proceeding with the mint.
+              You will pay the gas fees to mint your NFT. Please review the costs below.
             </p>
           </div>
 
@@ -409,28 +334,18 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
             </h4>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-400">Mint Price:</span>
-                <span className="font-medium text-blue-400">0.01 EDU</span>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-gray-400">Gas Limit:</span>
-                <span className="font-medium">{gasEstimate.gasLimit.toString()}</span>
+                <span className="font-medium">{gasEstimate.gasLimit}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Gas Price:</span>
                 <span className="font-medium">{ethers.formatUnits(gasEstimate.gasPrice, 'gwei')} gwei</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Gas Cost:</span>
-                <span className="font-medium">{parseFloat(gasEstimate.costInEDU).toFixed(6)} EDU</span>
-              </div>
-              <div className="border-t border-gray-600 pt-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-400 font-bold">Total Cost:</span>
-                  <span className="font-bold text-green-400">
-                    {(parseFloat(gasEstimate.costInEDU) + 0.01).toFixed(4)} EDU
-                  </span>
-                </div>
+                <span className="text-gray-400">Total Cost:</span>
+                <span className="font-bold text-green-400">
+                  {gasEstimate.totalCostInEDU} EDU
+                </span>
               </div>
               <div className="text-yellow-400 text-sm text-center mt-2">
                 💰 You will pay this amount from your wallet
@@ -450,7 +365,7 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
               onClick={() => handleGasConfirmation(true)}
               className="px-6"
             >
-              Proceed with Mint
+              Pay & Mint NFT
             </RippleButton>
           </div>
         </div>
@@ -478,8 +393,6 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-2xl font-bold">{progress}%</span>
               </div>
-              <div className="absolute -inset-4 rounded-full border border-mintellect-primary opacity-50 animate-pulse-slow"></div>
-              <div className="absolute -inset-8 rounded-full border border-mintellect-primary opacity-30 animate-pulse-slower"></div>
             </div>
 
             <h3 className="text-xl font-bold mb-2">
@@ -487,7 +400,7 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
             </h3>
             <p className="text-gray-400">
               {status === "minting"
-                ? "Please wait while we mint your document as an NFT on the blockchain."
+                ? "Please confirm the transaction in your wallet to mint the NFT."
                 : "Transaction submitted. Waiting for blockchain confirmation..."}
             </p>
           </div>
@@ -517,6 +430,18 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
                   )}
                 </div>
                 <span>Uploading to IPFS</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-6 h-6 rounded-full ${(status === "minting" && progress > 60) || status === "confirming" ? "bg-green-400" : "bg-gray-600"} flex items-center justify-center`}
+                >
+                  {(status === "minting" && progress > 60) || status === "confirming" ? (
+                    <Check className="h-4 w-4 text-black" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-white" />
+                  )}
+                </div>
+                <span>Estimating gas fees</span>
               </div>
               <div className="flex items-center gap-3">
                 <div
@@ -647,7 +572,7 @@ export function NFTMinting({ documentId, documentName, trustScore, onComplete }:
             <RippleButton
               variant="outline"
               className="flex items-center gap-2"
-              onClick={() => window.open(`https://etherscan.io/tx/${nftData.transactionHash}`, "_blank")}
+              onClick={() => window.open(`https://edu-chain-testnet.blockscout.com/tx/${nftData.transactionHash}`, "_blank")}
             >
               <ExternalLink className="h-4 w-4" />
               <span>View on Blockchain Explorer</span>
