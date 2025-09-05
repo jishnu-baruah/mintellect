@@ -123,6 +123,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!walletConnected) {
       dispatch({ type: 'CLEAR_USER_DATA' })
+      
+      // Clear workflow state and other caches
+      if (typeof window !== 'undefined') {
+        // Clear workflow state
+        localStorage.removeItem('workflow-state')
+        
+        // Clear any other user-specific localStorage items
+        const keysToRemove = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (key.startsWith('profile-') || key.startsWith('checklist-') || key.startsWith('workflow-'))) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key))
+        
+        console.log('Cleared user data and workflow state on wallet disconnect')
+      }
     }
   }, [walletConnected])
 
@@ -136,10 +154,29 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const clearUserData = () => {
     dispatch({ type: 'CLEAR_USER_DATA' })
-    // Clear localStorage cache
-    if (typeof window !== 'undefined' && walletAddress) {
-      LocalStorageCache.delete(`profile-${walletAddress}`)
-      LocalStorageCache.delete(`checklist-${walletAddress}`)
+    
+    // Clear localStorage cache and workflow state
+    if (typeof window !== 'undefined') {
+      // Clear workflow state
+      localStorage.removeItem('workflow-state')
+      
+      // Clear user-specific cache
+      if (walletAddress) {
+        LocalStorageCache.delete(`profile-${walletAddress}`)
+        LocalStorageCache.delete(`checklist-${walletAddress}`)
+      }
+      
+      // Clear any other user-specific localStorage items
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && (key.startsWith('profile-') || key.startsWith('checklist-') || key.startsWith('workflow-'))) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key))
+      
+      console.log('Cleared all user data and workflow state')
     }
   }
 

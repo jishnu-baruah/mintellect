@@ -64,16 +64,6 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
               Connect your wallet to access the full research verification platform.
             </p>
 
-            {/* Wallet Connection Info */}
-            <div className="bg-gray-800/50 rounded-lg p-4 mb-6">
-              <h3 className="font-medium mb-2">What you'll get:</h3>
-              <ul className="text-sm text-gray-400 space-y-1">
-                <li>• AI-powered plagiarism detection</li>
-                <li>• Trust score generation</li>
-                <li>• NFT minting for verified research</li>
-                <li>• Academic community access</li>
-            </ul>
-          </div>
 
             {/* Connect Wallet Button */}
             <button
@@ -117,16 +107,6 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
               Set up your profile to unlock the full Mintellect experience.
             </p>
 
-            {/* Profile Requirements */}
-            <div className="bg-gray-800/50 rounded-lg p-4 mb-6">
-              <h3 className="font-medium mb-2">Required Information:</h3>
-              <ul className="text-sm text-gray-400 space-y-1">
-                <li>• Full name</li>
-                <li>• Email address</li>
-                <li>• Institution</li>
-                <li>• Bio (optional)</li>
-              </ul>
-            </div>
 
             {/* Complete Profile Button */}
             <button

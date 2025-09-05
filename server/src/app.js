@@ -73,6 +73,32 @@ app.use('/api/workflow', workflowArchiveRouter);
 app.use('/api/pdf', pdfRouter);
 app.use(requireProfileCompletion);
 
+// Health check endpoint with HTTP authentication
+app.get('/health', (req, res) => {
+  const auth = req.headers.authorization;
+  
+  if (!auth || !auth.startsWith('Basic ')) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+  
+  const credentials = Buffer.from(auth.slice(6), 'base64').toString();
+  const [username, password] = credentials.split(':');
+  
+  if (username !== 'cronjob@mintellect' || password !== 'mintellect2025') {
+    res.status(401).json({ error: 'Invalid credentials' });
+    return;
+  }
+  
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    version: '1.0.0'
+  });
+});
+
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
