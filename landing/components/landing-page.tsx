@@ -28,8 +28,11 @@ import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect
 import { ShootingStars } from "@/components/ui/shooting-stars"
 import { StarsBackground } from "@/components/ui/stars-background"
 import MintellectTestimonials from "@/components/mintellect-testimonials"
+import FlipLink from "./ui/text-effect-flipper"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 import PageLoader from "@/components/page-loader"
+
 
 // Define data outside the component to avoid re-creation on each render
 const WORKFLOW_STEPS = [
@@ -245,7 +248,7 @@ export default function LandingPage() {
         { ref: heroRef, id: "hero", offset: 0 },
         { ref: capabilitiesSectionRef, id: "capabilities", offset: 100 },
         { ref: verificationSectionRef, id: "verification", offset: 100 },
-        { ref: workflowSectionRef, id: "workflow", offset: 100 },
+        { ref: workflowSectionRef, id: "workflow", offset: 0 },
         { ref: communitySectionRef, id: "community", offset: 100 },
         { ref: testimonialsSectionRef, id: "testimonials", offset: 100 },
         { ref: ctaSectionRef, id: "cta", offset: 100 },
@@ -466,7 +469,7 @@ section:not(.section-active) {
     <div
       className="min-h-screen bg-black text-white overflow-x-hidden scroll-smooth transition-all duration-500 scrollbar-hidden"
       ref={containerRef}
-      style={{
+          style={{
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
         WebkitScrollbar: { display: 'none' }
@@ -499,7 +502,7 @@ section:not(.section-active) {
       {/* Enhanced scroll navigation indicator */}
       <div className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50 hidden lg:block">
         <div className="flex flex-col items-center gap-6">
-          {["hero", "capabilities", "verification", "workflow", "community", "testimonials", "cta"].map((section) => (
+          {["hero", "verification", "workflow", "community", "testimonials", "cta"].map((section) => (
             <motion.div
               key={section}
               className="relative w-4 h-4 rounded-full cursor-pointer group"
@@ -562,10 +565,11 @@ section:not(.section-active) {
               rows={10} 
               cols={20} 
               cellSize={50}
+              interactive={true}
               className="opacity-30 absolute inset-0"
             />
             <motion.div
-              className="flex flex-col items-center justify-center min-h-[80vh] perspective-[1200px]"
+              className="flex flex-col items-center justify-center min-h-[80vh] perspective-[1200px] relative z-10 pointer-events-none"
               style={{
                 transformStyle: "preserve-3d",
                 willChange: "transform",
@@ -581,7 +585,7 @@ section:not(.section-active) {
               >
                 {/* Main content */}
                 <motion.div
-                  className="relative rounded-3xl p-4 sm:p-6 md:p-8 overflow-hidden"
+                  className="relative rounded-3xl p-4 sm:p-6 md:p-8 overflow-hidden z-20 pointer-events-none"
                   style={{
                     background: "rgba(0, 0, 0, 0.2)",
                     backdropFilter: "blur(10px)",
@@ -693,11 +697,13 @@ section:not(.section-active) {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.8, delay: 1 }}
-                      style={{ willChange: "transform, opacity" }}
+                      style={{ willChange: "transform, opacity", zIndex: 9999, pointerEvents: "auto" }}
+                      className="relative pointer-events-auto"
                     >
                       <Link href="https://app.mintellect.xyz" target="_blank" rel="noopener noreferrer">
                         <motion.button
                           className="group relative h-12 sm:h-14 w-40 sm:w-48 rounded-full overflow-hidden"
+                          style={{ zIndex: 10000, pointerEvents: "auto" }}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.98 }}
                         >
@@ -1248,7 +1254,7 @@ section:not(.section-active) {
           <div className="container mx-auto px-4 relative z-10">
             {/* Section header */}
             <div className="text-center relative z-10 mb-16">
-              <motion.div
+            <motion.div
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
@@ -1260,10 +1266,10 @@ section:not(.section-active) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.7, delay: 0.2 }}
-                  style={{
+              style={{
                     textShadow: "0 0 15px rgba(59, 130, 246, 0.5)",
-                    willChange: "transform, opacity",
-                  }}
+                willChange: "transform, opacity",
+              }}
                 >
                   Community
                 </motion.h2>
@@ -1281,8 +1287,8 @@ section:not(.section-active) {
               </motion.div>
             </div>
 
-            {/* Community content */}
-            <div className="max-w-5xl mx-auto">
+            {/* Professional Community Section with Cards */}
+            <div className="max-w-6xl mx-auto">
               <motion.div
                 className="relative"
                 initial={{ opacity: 0, y: 30 }}
@@ -1291,105 +1297,99 @@ section:not(.section-active) {
                 transition={{ duration: 0.7, delay: 0.2 }}
                 style={{ willChange: "transform, opacity" }}
               >
-                {/* Main description card */}
-                <div className="relative rounded-xl border border-blue-500/20 bg-black/40 backdrop-blur-md p-8 mb-8 overflow-hidden">
-                  <motion.p
-                    className="text-lg text-blue-100/90 text-center leading-relaxed max-w-3xl mx-auto"
+                {/* Community Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                  
+                  {/* Telegram Card */}
+                  <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.6, delay: 0.3 }}
                   >
-                    Mintellect is more than a platform - it's a supportive peer review community where researchers, innovators, and reviewers collaborate to build trusted knowledge. Our peer review system rewards contributors with OCI badges and incentives, ensuring recognition for their efforts.
-                  </motion.p>
-                </div>
-
-                {/* Action cards grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  {/* Telegram Card */}
-                  <motion.div
-                    className="relative group"
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                  >
-                    <Link 
-                      href="https://t.me/mintellect_community" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="block"
-                    >
-                      <div className="relative rounded-xl border border-blue-500/20 bg-black/30 backdrop-blur-md p-6 h-full transition-all duration-300 group-hover:border-blue-500/40 group-hover:bg-black/50 group-hover:scale-105">
-                        <div className="text-center">
-                          <div className="w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-500/20 transition-colors duration-300">
+                    <Link href="https://t.me/mintellect_community" target="_blank" rel="noopener noreferrer">
+                      <Card className="group cursor-pointer border border-blue-500/20 bg-black/30 backdrop-blur-md hover:border-blue-500/40 hover:bg-black/50 transition-all duration-300 hover:scale-105">
+                        <CardHeader className="text-center">
+                          <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors duration-300">
                             <Send className="h-8 w-8 text-blue-400" />
                           </div>
-                          <h3 className="text-lg font-bold text-white mb-2">Join Telegram</h3>
-                          <p className="text-blue-100/70 text-sm">
-                            Connect with researchers, reviewers, and innovators in our community
-                          </p>
-                        </div>
-                      </div>
+                          <CardTitle className="text-xl font-bold text-white group-hover:text-blue-300 transition-colors duration-300">
+                            Join Telegram
+                          </CardTitle>
+                          <CardDescription className="text-blue-100/70">
+                            Connect with researchers
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
                     </Link>
                   </motion.div>
 
                   {/* X/Twitter Card */}
                   <motion.div
-                    className="relative group"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.5 }}
+                    transition={{ duration: 0.6, delay: 0.4 }}
                   >
-                    <Link 
-                      href="https://x.com/_Mintellect_" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="block"
-                    >
-                      <div className="relative rounded-xl border border-blue-500/20 bg-black/30 backdrop-blur-md p-6 h-full transition-all duration-300 group-hover:border-blue-500/40 group-hover:bg-black/50 group-hover:scale-105">
-                        <div className="text-center">
-                          <div className="w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-500/20 transition-colors duration-300">
+                    <Link href="https://x.com/_Mintellect_" target="_blank" rel="noopener noreferrer">
+                      <Card className="group cursor-pointer border border-blue-500/20 bg-black/30 backdrop-blur-md hover:border-blue-500/40 hover:bg-black/50 transition-all duration-300 hover:scale-105">
+                        <CardHeader className="text-center">
+                          <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors duration-300">
                             <XIcon className="h-8 w-8 text-blue-400" />
                           </div>
-                          <h3 className="text-lg font-bold text-white mb-2">Follow on X</h3>
-                          <p className="text-blue-100/70 text-sm">
-                            Stay updated with the latest insights and announcements
-                          </p>
-                        </div>
-                      </div>
+                          <CardTitle className="text-xl font-bold text-white group-hover:text-blue-300 transition-colors duration-300">
+                            Follow on X
+                          </CardTitle>
+                          <CardDescription className="text-blue-100/70">
+                            Stay updated
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
                     </Link>
                   </motion.div>
 
-                               {/* Reviewer Application Card */}
-             <motion.div
-               className="relative group"
-               initial={{ opacity: 0, y: 20 }}
-               whileInView={{ opacity: 1, y: 0 }}
-               viewport={{ once: true }}
-               transition={{ duration: 0.5, delay: 0.6 }}
-             >
-               <Link
-                 href="https://18olnrtzvht.typeform.com/to/HCsFJfMH"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 className="block"
-               >
-                      <div className="relative rounded-xl border border-blue-500/20 bg-black/30 backdrop-blur-md p-6 h-full transition-all duration-300 group-hover:border-blue-500/40 group-hover:bg-black/50 group-hover:scale-105">
-                        <div className="text-center">
-                          <div className="w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-500/20 transition-colors duration-300">
+                  {/* Reviewer Application Card */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.5 }}
+                  >
+                    <Link href="https://18olnrtzvht.typeform.com/to/HCsFJfMH" target="_blank" rel="noopener noreferrer">
+                      <Card className="group cursor-pointer border border-blue-500/20 bg-black/30 backdrop-blur-md hover:border-blue-500/40 hover:bg-black/50 transition-all duration-300 hover:scale-105">
+                        <CardHeader className="text-center">
+                          <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors duration-300">
                             <Users className="h-8 w-8 text-blue-400" />
                           </div>
-                          <h3 className="text-lg font-bold text-white mb-2">Become a Reviewer</h3>
-                          <p className="text-blue-100/70 text-sm">
-                            Apply to shape the future of trusted research verification
-                          </p>
-                        </div>
-                      </div>
+                          <CardTitle className="text-xl font-bold text-white group-hover:text-blue-300 transition-colors duration-300">
+                            Become a Reviewer
+                          </CardTitle>
+                          <CardDescription className="text-blue-100/70">
+                            Join our reviewer program
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
                     </Link>
                   </motion.div>
+
                 </div>
+
+                {/* Description card */}
+                <motion.div
+                  className="mb-8"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: 0.6 }}
+                >
+                  <Card className="border border-blue-500/20 bg-black/40 backdrop-blur-md">
+                    <CardContent className="p-6">
+                      <p className="text-lg text-blue-100/90 text-center leading-relaxed max-w-2xl mx-auto">
+                        A supportive peer review community where researchers collaborate to build trusted knowledge.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
                 {/* Bottom message */}
                 <motion.div
@@ -1399,11 +1399,13 @@ section:not(.section-active) {
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: 0.7 }}
                 >
-                  <div className="relative rounded-xl border border-blue-500/20 bg-black/40 backdrop-blur-md p-6">
-                    <p className="text-lg text-blue-200/80 font-medium">
-                      Together, we're creating a decentralized ecosystem where trust fuels growth.
-                    </p>
-                  </div>
+                  <Card className="border border-blue-500/20 bg-black/40 backdrop-blur-md">
+                    <CardContent className="p-4">
+                      <p className="text-lg text-blue-200/80 font-medium">
+                        Building a decentralized ecosystem where trust fuels growth.
+                      </p>
+                    </CardContent>
+                  </Card>
                 </motion.div>
               </motion.div>
             </div>
@@ -1431,10 +1433,10 @@ section:not(.section-active) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.7, delay: 0.2 }}
-                  style={{
+                style={{
                     textShadow: "0 0 15px rgba(59, 130, 246, 0.5)",
-                    willChange: "transform, opacity",
-                  }}
+                  willChange: "transform, opacity",
+                }}
                 >
                   What Researchers Say
                 </motion.h2>
@@ -1450,7 +1452,7 @@ section:not(.section-active) {
                   Hear from leading researchers and institutions who trust Mintellect for their verification needs
                 </motion.p>
               </motion.div>
-            </div>
+          </div>
 
             {/* Testimonials content */}
             <motion.div
